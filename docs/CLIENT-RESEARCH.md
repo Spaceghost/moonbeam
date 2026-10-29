@@ -34,7 +34,9 @@ controlled cross-client benchmark.
 
 The first fix skipped NVIDIA VAAPI on Wayland and allowed software decoding.
 The later VAAPI/SDL path was clear in the recorded test, but the first fix was
-preferred in use and is restored as the default. Forced VAAPI remains available
+preferred in use and is restored as the default. For H.264, Automatic now tries
+software decoding before Vulkan Video on NVIDIA Wayland, then falls back to
+hardware if software initialization fails. Forced VAAPI remains available
 with `FORCE_VAAPI=1` and still avoids EGL import. With 189 MB free on the display
 GPU, a software-decoded stream using Vulkan rendering selected the other GPU,
 dropped frames, and lost its window. Selecting SDL rendering for the same

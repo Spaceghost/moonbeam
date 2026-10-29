@@ -30,5 +30,24 @@ frames through SDL produced a clear 1920×1080 stream and passed the same self-t
 In one 50-second run, average decoding time was 0.19 ms and rendering frame rate
 was 59.43 FPS. A separate software-decoded run averaged 1.58 ms decoding and
 59.30 FPS rendering. These are observations on one machine and scene, not a
-controlled cross-client benchmark. The release candidate still needs validation
-using its exact packaged bytes.
+controlled cross-client benchmark.
+
+The exact `v6.2.0-moonbeam.2` candidate from [run 40954444687](https://github.com/Spaceghost/moonbeam/actions/runs/40954444687)
+was installed and checked on the same desktop before tagging. The three-pass
+hardware self-test passed. A visually inspected 1920×1080, 60 FPS stream was
+clear; a controlled run measured 60.04 incoming FPS, 59.74 rendered FPS, 0.19 ms
+average decode time, and no network frame drops. A separate run received stereo
+audio packets through SDL PulseAudio and recorded nonzero output on the selected
+sink monitor. An 8-second pause of only the Moonbeam process dropped the
+connection; automatic reconnect resumed the same host app and rendered at
+59.51 FPS until the planned stop. These checks used the installed candidate
+binary, not a local rebuild.
+
+Two resource-pressure observations remain useful for diagnosis. With only
+272 MB free on the RTX 3070, Qt failed to create its launcher OpenGL context;
+`QT_QUICK_BACKEND=software` allowed the same candidate to launch and keep
+hardware video decoding. In a separate 14-second process-pause test, reconnect
+started but the second window closed after 11 seconds with a Vulkan surface-lost
+error. The shorter repeat above did not reproduce that close. Neither pause
+simulates a normal packet-loss pattern, so these results should not be treated as
+a general network-recovery benchmark.

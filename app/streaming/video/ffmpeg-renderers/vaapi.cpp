@@ -24,6 +24,7 @@ VAAPIRenderer::VAAPIRenderer(int decoderSelectionPass)
       m_WindowSystem(SDL_SYSWM_UNKNOWN),
       m_HwContext(nullptr),
       m_BlacklistedForDirectRendering(false),
+      m_AvoidEglOnNvidiaWayland(false),
       m_HasRfiLatencyBug(false),
       m_RequiresExplicitPixelFormat(false),
       m_OverlayMutex(nullptr)
@@ -446,19 +447,25 @@ VAAPIRenderer::initialize(PDECODER_PARAMETERS params)
         // We avoid the Nvidia VAAPI driver because:
         // - It can hang in vaSyncSurface() during buffer import (older versions in particular)
         // - The 16-bpc planar types cannot be imported into Vulkan due to incompatible DRM modifiers
-        // - EGL is broken in their driver, so we're stuck using the slow copy path in SDL renderer
+        // - EGL can show corrupted frames, so the later VAAPI pass must use SDL transfer
         bool preferOtherNvidiaDecoder = m_DecoderSelectionPass == 0;
 #if !defined(HAVE_LIBPLACEBO_VULKAN) && !defined(HAVE_CUDA)
         preferOtherNvidiaDecoder &= m_WindowSystem == SDL_SYSWM_X11;
 #endif
-        // The NVDEC VAAPI EGL path can produce corrupted frames on NVIDIA Wayland
-        // even after Vulkan decoding fails, so never retry it there by default.
-        if (vendorStr.contains("VA-API NVDEC", Qt::CaseInsensitive) &&
-                (preferOtherNvidiaDecoder || m_WindowSystem == SDL_SYSWM_WAYLAND)) {
+        if (vendorStr.contains("VA-API NVDEC", Qt::CaseInsensitive) && preferOtherNvidiaDecoder) {
             SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
                         "Deprioritizing VAAPI for NVIDIA driver. Set FORCE_VAAPI=1 to override.");
             return false;
         }
+    }
+
+    // The NVIDIA VAAPI EGL import path can report a successful test decode while
+    // presenting corrupted pixels. Keep hardware decoding, but use SDL transfer.
+    m_AvoidEglOnNvidiaWayland = m_WindowSystem == SDL_SYSWM_WAYLAND &&
+            vendorStr.contains("VA-API NVDEC", Qt::CaseInsensitive);
+    if (m_AvoidEglOnNvidiaWayland) {
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
+                    "Skipping NVIDIA VAAPI EGL import on Wayland; using SDL transfer");
     }
 
     if (WMUtils::isRunningWayland()) {
@@ -1060,6 +1067,10 @@ VAAPIRenderer::canExportSurfaceHandle(int layerTypeFlag, VADRMPRIMESurfaceDescri
 
 bool
 VAAPIRenderer::canExportEGL() {
+    if (m_AvoidEglOnNvidiaWayland) {
+        return false;
+    }
+
     VADRMPRIMESurfaceDescriptor descriptor;
 
     return (qgetenv("VAAPI_EGL_SEPARATE_LAYERS") != "1" && canExportSurfaceHandle(VA_EXPORT_SURFACE_COMPOSED_LAYERS, &descriptor)) ||

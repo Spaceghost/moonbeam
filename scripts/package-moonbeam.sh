@@ -3,13 +3,13 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 root=$PWD
-version=6.2.0-moonbeam.1
+version=${MOONBEAM_BUILD_VERSION:-$(cat app/moonbeam-version.txt)}
 mkdir -p build/native-vulkan build/tools dist
 python3 scripts/prepare-moonbeam-sdk.py
 export PKG_CONFIG_PATH="$root/build/deps/sdk/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 export LD_LIBRARY_PATH="$root/build/deps/sdk/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 cd build/native-vulkan
-qmake6 "$root/moonlight-qt.pro" CONFIG+=release CONFIG+=disable-libdrm PREFIX=/usr
+qmake6 "$root/moonlight-qt.pro" CONFIG+=release CONFIG+=disable-libdrm PREFIX=/usr "MOONBEAM_VERSION=$version"
 make qmake_all
 make -j"${BUILD_JOBS:-8}" release
 rm -rf "$root/build/Moonbeam.AppDir"
@@ -43,6 +43,16 @@ cat > "$root/build/AppRun" <<'EOF'
 #!/usr/bin/env bash
 set -e
 APPDIR="${APPDIR:-$(dirname "$(readlink -f "$0")")}"
+# Older bundled Qt otherwise chooses XWayland even in a native Wayland session.
+# Preserve explicit user choices, including offscreen diagnostics.
+if [[ -z "${QT_QPA_PLATFORM:-}" && -n "${WAYLAND_DISPLAY:-}" && -S "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/$WAYLAND_DISPLAY" ]]; then
+    export QT_QPA_PLATFORM=wayland
+fi
+# PulseAudio's protocol also works with PipeWire's pulse server. Prefer its
+# stable SDL path when that server exists; leave ALSA/other desktops untouched.
+if [[ -z "${SDL_AUDIODRIVER:-}" && -S "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/pulse/native" ]]; then
+    export SDL_AUDIODRIVER=pulseaudio
+fi
 if ! "$APPDIR/opt/libva-fallback/libva-probe" 2>/dev/null; then
     export LD_LIBRARY_PATH="$APPDIR/opt/libva-fallback${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
     export VAAPI_USE_FALLBACK_PATHS=1
@@ -58,12 +68,29 @@ export VERSION="$version" APPIMAGE_EXTRACT_AND_RUN=1
 rm -f "$root/dist/Moonbeam-$version-x86_64.AppImage"
 "$root/build/tools/linuxdeploy/AppRun" --appdir "$appdir" --plugin qt \
     --custom-apprun "$root/build/AppRun" \
-    --library="$root/build/deps/sdk/lib/libSDL3.so.0" \
     --library=/usr/lib/x86_64-linux-gnu/libssl.so.3 \
     --library=/usr/lib/x86_64-linux-gnu/libQt6WaylandClient.so.6 \
     --library=/usr/lib/x86_64-linux-gnu/libQt6WaylandEglClientHwIntegration.so.6 \
     --exclude-library='libva*.so*' --exclude-library='libwayland*.so*' \
-    --output appimage
+    --exclude-library='libglib-2.0.so*' --exclude-library='libgobject-2.0.so*' \
+    --exclude-library='libgio-2.0.so*' --exclude-library='libgmodule-2.0.so*' --exclude-library='libgthread-2.0.so*'
+# The Qt plugin redeploys its own dependencies without inheriting linuxdeploy's
+# exclusion list. Prune those host-library families after the plugin finishes,
+# then create the image in a second pass without the Qt plugin.
+python3 - "$appdir" <<'PY'
+from pathlib import Path
+import sys
+lib = Path(sys.argv[1]) / 'usr/lib'
+for pattern in ['libglib-2.0.so*', 'libgobject-2.0.so*', 'libgio-2.0.so*',
+                'libgmodule-2.0.so*', 'libgthread-2.0.so*', 'libwayland*.so*']:
+    for path in lib.glob(pattern):
+        path.unlink()
+PY
+"$root/build/tools/linuxdeploy/AppRun" --appdir "$appdir" \
+    --exclude-library='libva*.so*' --exclude-library='libwayland*.so*' \
+    --exclude-library='libglib-2.0.so*' --exclude-library='libgobject-2.0.so*' \
+    --exclude-library='libgio-2.0.so*' --exclude-library='libgmodule-2.0.so*' --exclude-library='libgthread-2.0.so*' \
+    --custom-apprun "$root/build/AppRun" --output appimage
 bundle="$root/dist/moonbeam-$version-linux-x86_64"
 rm -rf "$bundle"
 mkdir -p "$bundle"
@@ -74,4 +101,4 @@ cp "$root/LICENSE" "$bundle/"
 printf '%s\n' "$version" > "$bundle/VERSION"
 chmod +x "$bundle/install.sh"
 tar -czf "moonbeam-$version-linux-x86_64.tar.gz" "$(basename "$bundle")"
-sha256sum ./*.AppImage ./*.tar.gz > SHA256SUMS
+python3 "$root/scripts/release-artifacts.py" "$version"

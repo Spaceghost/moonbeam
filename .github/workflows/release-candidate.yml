@@ -1,0 +1,56 @@
+name: Moonbeam release candidate
+
+on:
+  push:
+    branches: ['release/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: startsWith(github.ref, 'refs/heads/release/')
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      - name: Installer checks
+        run: |
+          python3 tests/test_installer.py
+          python3 tests/test_release_promotion.py
+      - name: Build and test candidate
+        run: |
+          if ! command -v podman >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y podman uidmap slirp4netns
+          fi
+          export MOONBEAM_BUILD_VERSION="$(cat app/moonbeam-version.txt)+g${GITHUB_SHA:0:12}"
+          bash scripts/build-moonbeam-container.sh
+      - name: Verify portable startup and artifact checksums
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          version="$(cat app/moonbeam-version.txt)+g${GITHUB_SHA:0:12}"
+          "dist/Moonbeam-$version-x86_64.AppImage" --appimage-extract-and-run --version
+          python3 scripts/release-artifacts.py "$version"
+          cd dist
+          sha256sum -c Moonbeam-SHA256SUMS
+      - uses: actions/upload-artifact@v6
+        with:
+          name: moonbeam-candidate-${{ github.sha }}
+          path: |
+            dist/*.AppImage
+            dist/*.tar.gz
+            dist/Moonbeam-SHA256SUMS
+            dist/candidate.json
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 30

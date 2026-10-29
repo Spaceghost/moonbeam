@@ -127,6 +127,7 @@ public:
     }
 
     void flushWindowEvents();
+    static bool runVideoSelfTest();
 
     void setShouldExit(bool quitHostApp = false);
 

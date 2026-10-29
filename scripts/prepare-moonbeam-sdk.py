@@ -82,7 +82,7 @@ versions = {'libavcodec': ('63', '63.0.100', 'avcodec'),
 upstream_lib = runtime_dir / 'squashfs-root/usr/lib'
 for name in ['libavcodec.so.63', 'libavutil.so.61', 'libswscale.so.10',
              'libplacebo.so.374', 'libshaderc_shared.so.1', 'libvulkan.so.1',
-             'libSDL2-2.0.so.0', 'libSDL2_ttf-2.0.so.0', 'libSDL3.so.0', 'liblcms2.so.2']:
+             'libSDL2_ttf-2.0.so.0', 'liblcms2.so.2']:
     shutil.copy2(upstream_lib / name, lib / name)
 fallback = runtime_dir / 'squashfs-root/opt/libva-fallback'
 if not (sdk / 'opt/libva-fallback/libva-probe').exists():
@@ -99,4 +99,29 @@ for name, (abi, version, linker_name) in versions.items():
 for name, dest in [('libSDL2.so', 'libSDL2-2.0.so.0'), ('libSDL2_ttf.so', 'libSDL2_ttf-2.0.so.0')]:
     link = lib / name
     if not link.exists(): link.symlink_to(dest)
-print(f'Prepared pinned FFmpeg 9 / libplacebo 374 / SDL3 runtime in {sdk}')
+sdl_archive = download('SDL2-2.32.10.tar.gz',
+    'https://github.com/libsdl-org/SDL/releases/download/release-2.32.10/SDL2-2.32.10.tar.gz',
+    '5f5993c530f084535c65a6879e9b26ad441169b3e25d789d83287040a9ca5165')
+sdl_source = deps / 'SDL2-2.32.10'
+if not sdl_source.exists():
+    with tarfile.open(sdl_archive) as archive:
+        archive.extractall(deps)
+stamp = sdk / '.native-sdl2-2.32.10-wayland-pulse'
+if not stamp.exists():
+    build = deps / 'SDL2-build'
+    subprocess.run(['cmake', '-S', str(sdl_source), '-B', str(build),
+        '-DCMAKE_BUILD_TYPE=Release', f'-DCMAKE_INSTALL_PREFIX={sdk}',
+        '-DSDL_SHARED=ON', '-DSDL_STATIC=OFF', '-DSDL_TEST=OFF', '-DSDL_TESTS=OFF',
+        '-DSDL_WAYLAND=ON', '-DSDL_WAYLAND_SHARED=ON', '-DSDL_WAYLAND_LIBDECOR=ON',
+        '-DSDL_PULSEAUDIO=ON', '-DSDL_PIPEWIRE=OFF', '-DSDL_VULKAN=ON'], check=True)
+    subprocess.run(['cmake', '--build', str(build), '-j', os.environ.get('BUILD_JOBS', '8')], check=True)
+    subprocess.run(['cmake', '--install', str(build)], check=True)
+    # Check capabilities, not just the filename: sdl2-compat has the same SONAME.
+    import ctypes
+    runtime = ctypes.CDLL(str(lib / 'libSDL2-2.0.so.0'))
+    runtime.SDL_GetVideoDriver.restype = ctypes.c_char_p
+    drivers = [runtime.SDL_GetVideoDriver(i).decode() for i in range(runtime.SDL_GetNumVideoDrivers())]
+    if 'wayland' not in drivers:
+        raise RuntimeError(f'SDL was built without native Wayland: {drivers}')
+    stamp.write_text('SDL 2.32.10; Wayland; PulseAudio; no sdl2-compat\n')
+print(f'Prepared FFmpeg 9 / libplacebo 374 / native SDL2 2.32.10 in {sdk}')

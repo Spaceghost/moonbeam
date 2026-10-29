@@ -1,4 +1,5 @@
 #include "sdl.h"
+#include "../queuebudget.h"
 
 #include <Limelight.h>
 
@@ -67,6 +68,7 @@ bool SdlAudioRenderer::prepareForPlayback(const OPUS_MULTISTREAM_CONFIGURATION* 
                 SDL_GetCurrentAudioDriver());
 
     // Start playback
+    m_BytesPerSecond = have.freq * have.channels * getAudioBufferSampleSize();
     SDL_PauseAudioDevice(m_AudioDevice, 0);
 
     return true;
@@ -109,6 +111,7 @@ bool SdlAudioRenderer::submitAudio(int bytesWritten)
     // Provide backpressure on the queue to ensure too many frames don't build up
     // in SDL's audio queue, but don't wait forever to avoid a deadlock if the
     // audio device fails.
+    bool fitsBudget = false;
     for (int i = 0; i < 100; i++) {
         // Our device may enter a permanent error status upon removal, so we need
         // to recreate the audio device to pick up the new default audio device.
@@ -117,11 +120,17 @@ bool SdlAudioRenderer::submitAudio(int bytesWritten)
         }
 
         // Only queue more samples where there is 50 ms or less in SDL's queue
-        if (SDL_GetQueuedAudioSize(m_AudioDevice) / m_FrameSize * m_FrameDurationMs <= 50) {
+        if (AudioQueueBudget::fits(SDL_GetQueuedAudioSize(m_AudioDevice), bytesWritten, m_BytesPerSecond)) {
+            fitsBudget = true;
             break;
         }
 
         SDL_Delay(1);
+    }
+
+    // Do not grow the queue after a stalled device exhausts the wait budget.
+    if (!fitsBudget) {
+        return true;
     }
 
     if (SDL_QueueAudio(m_AudioDevice, m_AudioBuffer, bytesWritten) < 0) {

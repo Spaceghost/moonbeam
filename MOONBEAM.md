@@ -33,8 +33,8 @@ Windows, macOS, ARM Linux, iOS, or tvOS; those require separate native builds.
 Build: run `bash scripts/build-moonbeam-container.sh` on Linux with Podman.
 The modified C++/QML client compiles locally in Ubuntu 22.04. Decoder dependencies
 come from the SHA-256-pinned official Moonlight 6.2.0 AppImage (FFmpeg 9,
-libplacebo 374, SDL3), with matching public headers. This retains NVIDIA Vulkan
-hardware decoding. Packaging uses linuxdeploy and its Qt plugin. See
+libplacebo 374), with matching public headers. SDL 2.32.10 is compiled from pinned
+source with native Wayland and PulseAudio support. Packaging uses linuxdeploy and its Qt plugin. See
 `scripts/prepare-moonbeam-sdk.py` for exact versions and checksums. The GPLv3
 client source is included as a separate archive alongside the binary bundle.
 

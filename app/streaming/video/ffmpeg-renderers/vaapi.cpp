@@ -426,13 +426,14 @@ VAAPIRenderer::initialize(PDECODER_PARAMETERS params)
                     "VAAPI driver is affected by RFI latency bug");
     }
 
-    if (m_DecoderSelectionPass == 0 && qgetenv("FORCE_VAAPI") != "1") {
+    if (qgetenv("FORCE_VAAPI") != "1") {
         // Older versions of the Gallium VAAPI driver have a nasty memory leak that
         // causes memory to be leaked for each submitted frame. I believe this is
         // resolved in the libva2 drivers (VAAPI 1.x). We will try to use VDPAU
         // instead for old VAAPI versions or drivers affected by the RFI latency bug
         // as long as we're not streaming HDR (which is unsupported by VDPAU).
-        if ((major == 0 || (m_HasRfiLatencyBug && !(m_VideoFormat & VIDEO_FORMAT_MASK_10BIT))) &&
+        if (m_DecoderSelectionPass == 0 &&
+                (major == 0 || (m_HasRfiLatencyBug && !(m_VideoFormat & VIDEO_FORMAT_MASK_10BIT))) &&
                 vendorStr.contains("Gallium", Qt::CaseInsensitive)) {
             // Fail and let VDPAU pick this up
             SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
@@ -446,11 +447,14 @@ VAAPIRenderer::initialize(PDECODER_PARAMETERS params)
         // - It can hang in vaSyncSurface() during buffer import (older versions in particular)
         // - The 16-bpc planar types cannot be imported into Vulkan due to incompatible DRM modifiers
         // - EGL is broken in their driver, so we're stuck using the slow copy path in SDL renderer
-        if (
+        bool preferOtherNvidiaDecoder = m_DecoderSelectionPass == 0;
 #if !defined(HAVE_LIBPLACEBO_VULKAN) && !defined(HAVE_CUDA)
-            m_WindowSystem == SDL_SYSWM_X11 &&
+        preferOtherNvidiaDecoder &= m_WindowSystem == SDL_SYSWM_X11;
 #endif
-            vendorStr.contains("VA-API NVDEC", Qt::CaseInsensitive)) {
+        // The NVDEC VAAPI EGL path can produce corrupted frames on NVIDIA Wayland
+        // even after Vulkan decoding fails, so never retry it there by default.
+        if (vendorStr.contains("VA-API NVDEC", Qt::CaseInsensitive) &&
+                (preferOtherNvidiaDecoder || m_WindowSystem == SDL_SYSWM_WAYLAND)) {
             SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
                         "Deprioritizing VAAPI for NVIDIA driver. Set FORCE_VAAPI=1 to override.");
             return false;

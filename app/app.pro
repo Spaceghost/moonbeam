@@ -1,5 +1,9 @@
 QT += core quick network quickcontrols2 svg
 CONFIG += c++17
+isEmpty(MOONBEAM_VERSION) {
+    MOONBEAM_VERSION = $$cat(moonbeam-version.txt)
+}
+DEFINES += MOONBEAM_VERSION_STR=\\\"$$MOONBEAM_VERSION\\\"
 
 unix:!macx {
     TARGET = moonbeam

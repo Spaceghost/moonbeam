@@ -32,11 +32,17 @@ cd moonbeam
 bash scripts/build-moonbeam-container.sh
 ```
 
-The Podman builder compiles the modified client locally in Ubuntu 22.04 and writes portable packages to `dist/`. Decoder dependencies reuse a SHA-256-pinned official Moonlight 6.2.0 runtime, with matching public headers: FFmpeg 9, libplacebo 374, and SDL3. See [the dependency preparation script](scripts/prepare-moonbeam-sdk.py) and [packaging details](MOONBEAM.md).
+The Podman builder compiles the client in Ubuntu 22.04 and writes portable packages to `dist/`. FFmpeg 9 and libplacebo 374 reuse a SHA-256-pinned official Moonlight runtime with matching public headers. Genuine SDL 2.32.10 is built from pinned source with Wayland and PulseAudio support. Host GPU and GLib libraries remain on the host. See [dependency preparation](scripts/prepare-moonbeam-sdk.py), [packaging details](MOONBEAM.md), and [client performance research](docs/CLIENT-RESEARCH.md).
 
 The portable release targets **Linux x86_64 with glibc 2.35+**, including Bazzite/Fedora and Ubuntu 22.04+. Other operating systems and architectures require separate builds. Upstream platform build documentation is preserved in [UPSTREAM_README.md](UPSTREAM_README.md).
 
 Tests exercise the real reconnect QML with simulated transport events, termination policy, cancellation, retry limits, and installer migration/idempotency. Run the installer tests with `python3 tests/test_installer.py`; the container builder runs the Qt tests. No test interrupts an existing game session.
+
+Run `moonbeam selftest` inside a graphical desktop to test hardware decoding and renderer recreation three times. This exercises the client path without connecting to a host or quitting a running game. For release validation, also check a real stream and audio.
+
+## Releases and backports
+
+Work uses branches and direct pushes. Push `release/**` to build and test a candidate; tagging is a separate promotion of the exact validated artifacts. Tags are immutable. Cherry-pick backports with `-x`, bump the Moonbeam patch version, and validate a new candidate before creating its tag. See [the release process](docs/RELEASES.md).
 
 ## License and attribution
 

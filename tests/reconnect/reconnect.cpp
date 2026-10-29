@@ -7,6 +7,7 @@
 #include <QTimer>
 #include <QDateTime>
 #include "../../app/streaming/reconnectpolicy.h"
+#include "../../app/streaming/audio/queuebudget.h"
 
 // Execute the real StreamSegue.qml with deterministic transport signals. No
 // server, game, input grab, or live network changes are involved.
@@ -63,6 +64,17 @@ class ReconnectTest : public QObject {
 public:
     explicit ReconnectTest(QString path) : source(path) {}
 private slots:
+    void audioQueueBudget() {
+        const unsigned stereo = 48000 * 2 * 4;
+        QVERIFY(AudioQueueBudget::fits(9 * 1920, 1920, stereo));
+        QVERIFY(!AudioQueueBudget::fits(10 * 1920, 1920, stereo));
+        QVERIFY(AudioQueueBudget::fits(4 * 3840, 3840, stereo));
+        QVERIFY(!AudioQueueBudget::fits(5 * 3840, 3840, stereo));
+        QVERIFY(!AudioQueueBudget::fits(stereo / 20 - 1, 2, stereo));
+        QVERIFY(AudioQueueBudget::fits(48000 * 8 * 4 / 25, 48000 * 8 * 4 / 100, 48000 * 8 * 4));
+        QVERIFY(!AudioQueueBudget::fits(0, 1, 0));
+        QVERIFY(!AudioQueueBudget::fits(0, stereo, stereo));
+    }
     void terminationPolicy() {
         for (int code : {ML_ERROR_GRACEFUL_TERMINATION, ML_ERROR_PROTECTED_CONTENT,
                          ML_ERROR_FRAME_CONVERSION, ML_ERROR_UNEXPECTED_EARLY_TERMINATION})

@@ -23,4 +23,5 @@ private:
     void* m_AudioBuffer;
     Uint32 m_FrameSize;
     Uint32 m_FrameDurationMs;
+    Uint32 m_BytesPerSecond = 0;
 };

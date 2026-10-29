@@ -2,7 +2,6 @@ name: Moonbeam checks
 
 on:
   push:
-  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -23,7 +22,9 @@ jobs:
             qml6-module-qtquick-templates qml6-module-qtquick-window qml6-module-qtqml-workerscript \
             qml6-module-qtquick qml6-module-qtquick-layouts
       - name: Installer tests
-        run: python3 tests/test_installer.py
+        run: |
+          python3 tests/test_installer.py
+          python3 tests/test_release_promotion.py
       - name: Reconnect tests
         env:
           QT_QPA_PLATFORM: offscreen

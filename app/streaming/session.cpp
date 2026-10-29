@@ -392,6 +392,29 @@ int Session::drSubmitDecodeUnit(PDECODE_UNIT du)
     }
 }
 
+bool Session::runVideoSelfTest()
+{
+    if (SDL_InitSubSystem(SDL_INIT_VIDEO) != 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Video self-test needs a graphical session: %s", SDL_GetError());
+        return false;
+    }
+    SDL_Window* window = StreamUtils::createTestWindow();
+    bool success = window != nullptr;
+    for (int pass = 0; success && pass < 3; ++pass) {
+        IVideoDecoder* decoder = nullptr;
+        success = chooseDecoder(StreamingPreferences::VDS_FORCE_HARDWARE,
+                                StreamingPreferences::RS_AUTO, window,
+                                VIDEO_FORMAT_H264, 1920, 1080, 60,
+                                false, false, true, decoder);
+        success = success && decoder && decoder->isHardwareAccelerated();
+        delete decoder;
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Hardware decoder recreation %d/3: %s", pass + 1, success ? "PASS" : "FAIL");
+    }
+    SDL_DestroyWindow(window);
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+    return success;
+}
+
 void Session::getDecoderInfo(SDL_Window* window,
                              bool& isHardwareAccelerated, bool& isFullScreenOnly,
                              bool& isHdrSupported, QSize& maxResolution)

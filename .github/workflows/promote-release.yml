@@ -7,7 +7,7 @@ on:
         description: Successful release-candidate build run ID
         type: string
         required: true
-      hardware_validated:
+      video_validated:
         description: Decoder recreation and live streaming validated using these candidate bytes
         type: boolean
         default: false
@@ -27,15 +27,15 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       CANDIDATE_RUN_ID: ${{ inputs.run_id }}
-      HARDWARE_VALIDATED: ${{ inputs.hardware_validated }}
+      VIDEO_VALIDATED: ${{ inputs.video_validated }}
     steps:
       - uses: actions/checkout@v5
       - name: Download and promote exact validated artifacts
         run: |
-          [[ "$HARDWARE_VALIDATED" == true ]] || { echo 'Hardware validation is incomplete.'; exit 1; }
+          [[ "$VIDEO_VALIDATED" == true ]] || { echo 'Video validation is incomplete.'; exit 1; }
           [[ "$CANDIDATE_RUN_ID" =~ ^[0-9]+$ ]] || { echo 'Invalid run ID.'; exit 1; }
           gh run download "$CANDIDATE_RUN_ID" --repo "$GITHUB_REPOSITORY" --dir candidate
           manifest=$(find candidate -name candidate.json -print -quit)
           test -n "$manifest"
           python3 scripts/promote-release.py --repo "$GITHUB_REPOSITORY" \
-            --run-id "$CANDIDATE_RUN_ID" --artifacts "$(dirname "$manifest")" --hardware-validated
+            --run-id "$CANDIDATE_RUN_ID" --artifacts "$(dirname "$manifest")" --video-validated

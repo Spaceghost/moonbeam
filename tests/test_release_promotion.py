@@ -36,7 +36,7 @@ raise SystemExit(2)
         'dirty':False, 'commit':'a'*40, 'run_id':42,
         'sha256':{artifact.name:hashlib.sha256(artifact.read_bytes()).hexdigest()}}
     cases = ['success','failed','wrong-branch','pull-request','tag-exists','api-failure',
-             'dirty','wrong-sha','wrong-run','tampered','missing-hardware','bad-version']
+             'dirty','wrong-sha','wrong-run','tampered','missing-video','bad-version']
     for case in cases:
         data = json.loads(json.dumps(manifest))
         if case=='dirty':data['dirty']=True
@@ -48,7 +48,7 @@ raise SystemExit(2)
         marker = root / f'promoted-{case}'
         env=dict(os.environ, PATH=str(root)+os.pathsep+os.environ['PATH'], TEST_CASE=case, PROMOTED=str(marker))
         args=['python3',str(script),'--run-id','42','--artifacts',str(root)]
-        if case!='missing-hardware':args.append('--hardware-validated')
+        if case!='missing-video':args.append('--video-validated')
         result=subprocess.run(args,env=env,capture_output=True,text=True)
         assert (result.returncode==0)==(case=='success'),(case,result.stderr)
         assert marker.exists()==(case=='success'),case

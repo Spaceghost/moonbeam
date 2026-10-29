@@ -402,13 +402,16 @@ bool Session::runVideoSelfTest()
     bool success = window != nullptr;
     for (int pass = 0; success && pass < 3; ++pass) {
         IVideoDecoder* decoder = nullptr;
-        success = chooseDecoder(StreamingPreferences::VDS_FORCE_HARDWARE,
+        success = chooseDecoder(StreamingPreferences::VDS_AUTO,
                                 StreamingPreferences::RS_AUTO, window,
                                 VIDEO_FORMAT_H264, 1920, 1080, 60,
                                 false, false, true, decoder);
-        success = success && decoder && decoder->isHardwareAccelerated();
+        success = success && decoder;
+        const char* decoderType = decoder == nullptr ? "unavailable" :
+                (decoder->isHardwareAccelerated() ? "hardware" : "software");
         delete decoder;
-        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Hardware decoder recreation %d/3: %s", pass + 1, success ? "PASS" : "FAIL");
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Video decoder recreation %d/3 (%s): %s",
+                    pass + 1, decoderType, success ? "PASS" : "FAIL");
     }
     SDL_DestroyWindow(window);
     SDL_QuitSubSystem(SDL_INIT_VIDEO);

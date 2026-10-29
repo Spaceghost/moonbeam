@@ -161,7 +161,7 @@ GlobalCommandLineParser::ParseResult GlobalCommandLineParser::parse(const QStrin
         "  quit            Quit the currently running app\n"
         "  stream          Start streaming an app\n"
         "  pair            Pair a new host\n"
-        "  selftest        Exercise hardware decoder and renderer recreation\n"
+        "  selftest        Exercise selected decoder and renderer recreation\n"
         "\n"
         "See 'moonlight <action> --help' for help of specific action."
     );

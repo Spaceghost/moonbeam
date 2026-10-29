@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate a successful release-branch build and publish its exact bytes.
 
-The tag is created only after checks, artifact hashes, and explicit hardware
+The tag is created only after checks, artifact hashes, and explicit video
 validation are complete. Existing tags are immutable, including backport tags.
 """
 import argparse
@@ -15,10 +15,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--repo', default='Spaceghost/moonbeam')
 parser.add_argument('--run-id', required=True, type=int)
 parser.add_argument('--artifacts', required=True, type=Path)
-parser.add_argument('--hardware-validated', action='store_true')
+parser.add_argument('--video-validated', action='store_true')
 args = parser.parse_args()
-if not args.hardware_validated:
-    parser.error('Hardware decoder/renderer and live stream validation must finish before tagging.')
+if not args.video_validated:
+    parser.error('Selected video decoder/renderer and live stream validation must finish before tagging.')
 
 def api(path):
     return json.loads(subprocess.check_output(['gh', 'api', f'repos/{args.repo}/{path}'], text=True))
@@ -53,7 +53,7 @@ notes = args.artifacts / 'release-notes.md'
 notes.write_text(f"Moonbeam {manifest['base_version']}\n\n"
     f"Built and tested on `{run['head_branch']}` at `{manifest['commit']}`.\n\n"
     f"Candidate build: {run['html_url']}\n\n"
-    "Hardware decoder/renderer recreation and live streaming were validated before promotion. "
+    "Selected decoder/renderer recreation and live streaming were validated before promotion. "
     "These are the exact candidate binaries, with no rebuild during promotion. "
     "The binary version includes its source commit for traceability.\n\n"
     "Extract the Linux x86_64 tarball and run `./install.sh`, or use the AppImage. "

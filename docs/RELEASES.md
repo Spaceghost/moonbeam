@@ -13,6 +13,8 @@ Download a successful candidate run, install that exact tarball on the target
 desktop, run `moonbeam selftest`, and check a real 1080p stream, audio, and decoder
 recreation. The self-test uses Moonbeam's renderer, hardware decoder, test frame,
 and three teardown/recreation cycles. A standalone FFmpeg decode is insufficient.
+The self-test cannot detect every corrupted presentation path: inspect a live
+stream visually even when all three decoder recreation cycles pass.
 Do not publish screenshots containing personal desktop content as release assets.
 
 After validation, run **Tag validated Moonbeam release** with the successful

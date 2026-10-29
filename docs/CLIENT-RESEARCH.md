@@ -21,3 +21,14 @@ libraries. This is a compatibility fix, not a benchmark claim.
 Validation must distinguish startup, full renderer/decoder tests, actual streamed
 frames, audio, and recovery after disruption. Successful startup or decoding four
 frames in an independent FFmpeg device does not establish end-to-end correctness.
+
+On an NVIDIA RTX 3070 with GNOME Wayland, Moonbeam's VAAPI/EGL path decoded at
+about 60 FPS but displayed colored noise. Its three-pass hardware self-test still
+passed, so that result alone did not establish visual correctness. Vulkan Video
+initialization failed on this driver. Retaining VAAPI decoding while transferring
+frames through SDL produced a clear 1920×1080 stream and passed the same self-test.
+In one 50-second run, average decoding time was 0.19 ms and rendering frame rate
+was 59.43 FPS. A separate software-decoded run averaged 1.58 ms decoding and
+59.30 FPS rendering. These are observations on one machine and scene, not a
+controlled cross-client benchmark. The release candidate still needs validation
+using its exact packaged bytes.

@@ -38,6 +38,9 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
+          # GPU-facing libva libraries intentionally come from the target host.
+          sudo apt-get update -qq
+          sudo apt-get install -y libva-wayland2 libva-x11-2
           version="$(cat app/moonbeam-version.txt)+g${GITHUB_SHA:0:12}"
           "dist/Moonbeam-$version-x86_64.AppImage" --appimage-extract-and-run --version
           python3 scripts/release-artifacts.py "$version"

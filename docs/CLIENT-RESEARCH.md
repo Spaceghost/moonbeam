@@ -46,7 +46,9 @@ binary, not a local rebuild.
 Two resource-pressure observations remain useful for diagnosis. With only
 272 MB free on the RTX 3070, Qt failed to create its launcher OpenGL context;
 `QT_QUICK_BACKEND=software` allowed the same candidate to launch and keep
-hardware video decoding. In a separate 14-second process-pause test, reconnect
+hardware video decoding. The portable launcher now selects that Qt Quick
+backend automatically on NVIDIA Wayland when the user has not chosen another.
+In a separate 14-second process-pause test, reconnect
 started but the second window closed after 11 seconds with a Vulkan surface-lost
 error. The shorter repeat above did not reproduce that close. Neither pause
 simulates a normal packet-loss pattern, so these results should not be treated as

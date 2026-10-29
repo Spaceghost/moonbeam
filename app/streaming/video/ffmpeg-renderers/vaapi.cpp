@@ -447,20 +447,21 @@ VAAPIRenderer::initialize(PDECODER_PARAMETERS params)
         // We avoid the Nvidia VAAPI driver because:
         // - It can hang in vaSyncSurface() during buffer import (older versions in particular)
         // - The 16-bpc planar types cannot be imported into Vulkan due to incompatible DRM modifiers
-        // - EGL can show corrupted frames, so the later VAAPI pass must use SDL transfer
+        // - EGL can show corrupted frames on Wayland, so prefer software decoding there
         bool preferOtherNvidiaDecoder = m_DecoderSelectionPass == 0;
 #if !defined(HAVE_LIBPLACEBO_VULKAN) && !defined(HAVE_CUDA)
         preferOtherNvidiaDecoder &= m_WindowSystem == SDL_SYSWM_X11;
 #endif
-        if (vendorStr.contains("VA-API NVDEC", Qt::CaseInsensitive) && preferOtherNvidiaDecoder) {
+        if (vendorStr.contains("VA-API NVDEC", Qt::CaseInsensitive) &&
+                (preferOtherNvidiaDecoder || m_WindowSystem == SDL_SYSWM_WAYLAND)) {
             SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
                         "Deprioritizing VAAPI for NVIDIA driver. Set FORCE_VAAPI=1 to override.");
             return false;
         }
     }
 
-    // The NVIDIA VAAPI EGL import path can report a successful test decode while
-    // presenting corrupted pixels. Keep hardware decoding, but use SDL transfer.
+    // When VAAPI is explicitly forced on NVIDIA Wayland, still avoid its EGL
+    // import path, which can report a good test decode but present corrupted pixels.
     m_AvoidEglOnNvidiaWayland = m_WindowSystem == SDL_SYSWM_WAYLAND &&
             vendorStr.contains("VA-API NVDEC", Qt::CaseInsensitive);
     if (m_AvoidEglOnNvidiaWayland) {

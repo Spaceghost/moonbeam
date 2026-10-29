@@ -54,6 +54,12 @@ fi
 if [[ -z "${QT_QUICK_BACKEND:-}" && "${QT_QPA_PLATFORM:-}" == wayland && -r /proc/driver/nvidia/version ]]; then
     export QT_QUICK_BACKEND=software
 fi
+# On NVIDIA Wayland, the SDL renderer stayed stable when the display GPU was
+# nearly full while Vulkan selected another GPU and lost its window surface.
+# This only changes renderer preference; explicit user settings still win.
+if [[ -z "${VULKAN_IS_SLOW:-}" && "${QT_QPA_PLATFORM:-}" == wayland && -r /proc/driver/nvidia/version ]]; then
+    export VULKAN_IS_SLOW=1
+fi
 # PulseAudio's protocol also works with PipeWire's pulse server. Prefer its
 # stable SDL path when that server exists; leave ALSA/other desktops untouched.
 if [[ -z "${SDL_AUDIODRIVER:-}" && -S "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/pulse/native" ]]; then

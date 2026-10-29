@@ -2,6 +2,7 @@
 
 #include <QSemaphore>
 #include <QQuickWindow>
+#include <atomic>
 
 #include <Limelight.h>
 #include <opus_multistream.h>
@@ -104,6 +105,10 @@ public:
     Q_INVOKABLE bool initialize(QQuickWindow* qtWindow);
     Q_INVOKABLE void start();
     Q_INVOKABLE void interrupt();
+    Q_INVOKABLE Session* createReconnectSession();
+    Q_INVOKABLE void cancelReconnect() { m_ReconnectCancelled = true; interrupt(); }
+    Q_PROPERTY(bool canReconnect READ canReconnect)
+    bool canReconnect() const { return m_ReconnectAllowed && !m_ReconnectCancelled && !m_ShouldExit && m_Preferences->autoReconnect; }
     Q_PROPERTY(QStringList launchWarnings MEMBER m_LaunchWarnings NOTIFY launchWarningsChanged);
 
     static
@@ -259,6 +264,9 @@ private:
     Uint32 m_FullScreenFlag;
     QQuickWindow* m_QtWindow;
     bool m_UnexpectedTermination;
+    bool m_ReconnectAllowed = false;
+    bool m_IsReconnect = false;
+    std::atomic<bool> m_ReconnectCancelled{false};
     SdlInputHandler* m_InputHandler;
     int m_MouseEmulationRefCount;
     int m_FlushingWindowEventsRef;

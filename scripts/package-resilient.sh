@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 root=$PWD
-version=6.2.0-resilient.1
+version=6.2.0-resilient.2
 mkdir -p build/native-vulkan build/tools dist
 python3 scripts/prepare-resilient-sdk.py
 export PKG_CONFIG_PATH="$root/build/deps/sdk/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
@@ -60,6 +60,8 @@ rm -f "$root/dist/Moonlight_Resilient-$version-x86_64.AppImage"
     --custom-apprun "$root/build/AppRun" \
     --library="$root/build/deps/sdk/lib/libSDL3.so.0" \
     --library=/usr/lib/x86_64-linux-gnu/libssl.so.3 \
+    --library=/usr/lib/x86_64-linux-gnu/libQt6WaylandClient.so.6 \
+    --library=/usr/lib/x86_64-linux-gnu/libQt6WaylandEglClientHwIntegration.so.6 \
     --exclude-library='libva*.so*' --exclude-library='libwayland*.so*' \
     --output appimage
 bundle="$root/dist/moonlight-resilient-$version-linux-x86_64"

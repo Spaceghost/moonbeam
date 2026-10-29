@@ -423,7 +423,7 @@ int main(int argc, char *argv[])
     SDL_SetMainReady();
 
     // Set the app version for the QCommandLineParser's showVersion() command
-    QCoreApplication::setApplicationVersion(QStringLiteral(VERSION_STR) + "-resilient.1");
+    QCoreApplication::setApplicationVersion(QStringLiteral(VERSION_STR) + "-resilient.2");
 
     // Set these here to allow us to use the default QSettings constructor.
     // These also ensure that our cache directory is named correctly. As such,

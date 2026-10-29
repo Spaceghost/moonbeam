@@ -3,6 +3,8 @@
 #include "utils.h"
 #include "streaming/session.h"
 
+#include <QFileInfo>
+
 #include <h264_stream.h>
 
 extern "C" {
@@ -1690,10 +1692,45 @@ bool FFmpegVideoDecoder::initialize(PDECODER_PARAMETERS params)
         }
     }
 
-    const AVCodec* decoder;
-    void* codecIterator;
+    auto trySoftwareDecoders = [&]() -> bool {
+        void* codecIterator = nullptr;
+        const AVCodec* decoder;
+        while ((decoder = av_codec_iterate(&codecIterator))) {
+            if (!av_codec_is_decoder(decoder) || !isDecoderMatchForParams(decoder, params)) {
+                continue;
+            }
 
-    // Look for a hardware decoder first unless software-only
+            // A codec can support both hardware and software acceleration.
+            // Only try its software path here.
+            if (getAVCodecCapabilities(decoder) & AV_CODEC_CAP_HARDWARE) {
+                continue;
+            }
+
+            if (tryInitializeRendererForUnknownDecoder(decoder, params, false)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    // The first NVIDIA Wayland fix used software H.264 when hardware paths were
+    // unreliable. Try that known-good path before Vulkan Video in Automatic mode;
+    // keep explicit hardware selection and a hardware fallback if it fails.
+    const bool preferSoftwareOnNvidiaWayland =
+            params->vds == StreamingPreferences::VDS_AUTO &&
+            params->videoFormat == VIDEO_FORMAT_H264 &&
+            WMUtils::isRunningWayland() &&
+            QFileInfo::exists("/proc/driver/nvidia/version") &&
+            qgetenv("FORCE_VAAPI") != "1" && qgetenv("PREFER_VULKAN") != "1";
+    if (preferSoftwareOnNvidiaWayland) {
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                    "Trying software H.264 first on NVIDIA Wayland");
+        if (trySoftwareDecoders()) {
+            return true;
+        }
+    }
+
+    // Otherwise look for a hardware decoder unless software-only.
     if (params->vds != StreamingPreferences::VDS_FORCE_SOFTWARE) {
         QSet<const AVCodec*> terminallyFailedHardwareDecoders;
 
@@ -1722,34 +1759,9 @@ bool FFmpegVideoDecoder::initialize(PDECODER_PARAMETERS params)
     }
 
     // Iterate through all software decoders if allowed
-    if (params->vds != StreamingPreferences::VDS_FORCE_HARDWARE) {
-        codecIterator = NULL;
-        while ((decoder = av_codec_iterate(&codecIterator))) {
-            // Skip codecs that aren't decoders
-            if (!av_codec_is_decoder(decoder)) {
-                continue;
-            }
-
-            // Skip decoders that don't match our decoding parameters
-            if (!isDecoderMatchForParams(decoder, params)) {
-                continue;
-            }
-
-            // Skip hardware decoders
-            //
-            // NB: We can't skip hwaccel decoders here because they can be both
-            // hardware and software depending on whether an hwaccel is supplied.
-            // Instead, we tell tryInitializeRendererForUnknownDecoder() not to
-            // try hwaccel for this decoder.
-            if (getAVCodecCapabilities(decoder) & AV_CODEC_CAP_HARDWARE) {
-                continue;
-            }
-
-            // Try this decoder without hwaccel
-            if (tryInitializeRendererForUnknownDecoder(decoder, params, false)) {
-                return true;
-            }
-        }
+    if (params->vds != StreamingPreferences::VDS_FORCE_HARDWARE &&
+            !preferSoftwareOnNvidiaWayland && trySoftwareDecoders()) {
+        return true;
     }
 
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,

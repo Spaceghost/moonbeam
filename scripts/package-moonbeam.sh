@@ -48,6 +48,12 @@ APPDIR="${APPDIR:-$(dirname "$(readlink -f "$0")")}"
 if [[ -z "${QT_QPA_PLATFORM:-}" && -n "${WAYLAND_DISPLAY:-}" && -S "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/$WAYLAND_DISPLAY" ]]; then
     export QT_QPA_PLATFORM=wayland
 fi
+# Qt's launcher can fail to allocate an OpenGL context when the NVIDIA display
+# GPU is busy. The streaming renderer and hardware decoder do not use Qt Quick.
+# Keep user-selected Qt Quick backends, including graphics diagnostics.
+if [[ -z "${QT_QUICK_BACKEND:-}" && "${QT_QPA_PLATFORM:-}" == wayland && -r /proc/driver/nvidia/version ]]; then
+    export QT_QUICK_BACKEND=software
+fi
 # PulseAudio's protocol also works with PipeWire's pulse server. Prefer its
 # stable SDL path when that server exists; leave ALSA/other desktops untouched.
 if [[ -z "${SDL_AUDIODRIVER:-}" && -S "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/pulse/native" ]]; then

@@ -1,4 +1,5 @@
 #include "session.h"
+#include "reconnectpolicy.h"
 #include "settings/streamingpreferences.h"
 #include "streaming/streamutils.h"
 #include "backend/richpresencemanager.h"
@@ -78,7 +79,8 @@ void Session::clStageFailed(int stage, int errorCode)
 {
     // Perform the port test now, while we're on the async connection thread and not blocking the UI.
     unsigned int portFlags = LiGetPortFlagsFromStage(stage);
-    s_ActiveSession->m_PortTestResults = LiTestClientConnectivity(CONN_TEST_SERVER, 443, portFlags);
+    s_ActiveSession->m_PortTestResults = s_ActiveSession->m_IsReconnect &&
+            s_ActiveSession->m_Preferences->autoReconnect ? 0 : LiTestClientConnectivity(CONN_TEST_SERVER, 443, portFlags);
 
     char failingPorts[128];
     LiStringifyPortFlags(portFlags, ", ", failingPorts, sizeof(failingPorts));
@@ -87,8 +89,12 @@ void Session::clStageFailed(int stage, int errorCode)
 
 void Session::clConnectionTerminated(int errorCode)
 {
+    // Fatal host/encoder failures need user intervention. Network failures can
+    // resume the existing app once the old connection has completely shut down.
+    s_ActiveSession->m_ReconnectAllowed = ReconnectPolicy::canRetryTermination(errorCode);
     unsigned int portFlags = LiGetPortFlagsFromTerminationErrorCode(errorCode);
-    s_ActiveSession->m_PortTestResults = LiTestClientConnectivity(CONN_TEST_SERVER, 443, portFlags);
+    s_ActiveSession->m_PortTestResults = s_ActiveSession->canReconnect() ? 0 :
+            LiTestClientConnectivity(CONN_TEST_SERVER, 443, portFlags);
 
     // Display the termination dialog if this was not intended
     switch (errorCode) {
@@ -594,6 +600,15 @@ Session::~Session()
     // Use Session::exec() or DeferredSessionCleanupTask instead.
 
     SDL_DestroyMutex(m_DecoderLock);
+}
+
+Session* Session::createReconnectSession()
+{
+    // Called only after readyForDeletion: LiStopConnection() and the SDL
+    // teardown must finish before another session is initialized.
+    auto next = new Session(m_Computer, m_App, m_Preferences);
+    next->m_IsReconnect = true;
+    return next;
 }
 
 bool Session::initialize(QQuickWindow* qtWindow)
@@ -1592,9 +1607,10 @@ public:
 // Called in a non-main thread
 bool Session::startConnectionAsync()
 {
+    m_ReconnectAllowed = m_IsReconnect;
     // The UI should have ensured the old game was already quit
     // if we decide to stream a different game.
-    Q_ASSERT(m_Computer->currentGameId == 0 ||
+    Q_ASSERT(m_IsReconnect || m_Computer->currentGameId == 0 ||
              m_Computer->currentGameId == m_App.id);
 
     bool enableGameOptimizations;
@@ -1624,7 +1640,16 @@ bool Session::startConnectionAsync()
 
     try {
         NvHTTP http(m_Computer);
-        http.startApp(m_Computer->currentGameId != 0 ? "resume" : "launch",
+        int currentGame = m_Computer->currentGameId;
+        if (m_IsReconnect) {
+            currentGame = NvHTTP::getCurrentGame(http.getServerInfo(NvHTTP::NVLL_ERROR, true));
+            if (currentGame != m_App.id) {
+                m_ReconnectAllowed = false;
+                emit displayLaunchError(tr("The original game session has ended or another app is running. Automatic reconnect stopped."));
+                return false;
+            }
+        }
+        http.startApp(currentGame != 0 ? "resume" : "launch",
                       m_Computer->isNvidiaServerSoftware,
                       m_App.id, &m_StreamConfig,
                       enableGameOptimizations,
@@ -1633,6 +1658,10 @@ bool Session::startConnectionAsync()
                       !m_Preferences->multiController,
                       rtspSessionUrl);
     } catch (const GfeHttpResponseException& e) {
+        // Authentication and permission failures will not heal by retrying.
+        if (e.getStatusCode() == 401 || e.getStatusCode() == 403) {
+            m_ReconnectAllowed = false;
+        }
         emit displayLaunchError(tr("Host returned error: %1").arg(e.toQString()));
         return false;
     } catch (const QtNetworkReplyException& e) {
@@ -1725,6 +1754,7 @@ bool Session::startConnectionAsync()
         return false;
     }
 
+    m_ReconnectAllowed = false;
     emit connectionStarted();
     return true;
 }

@@ -1263,6 +1263,16 @@ Flickable {
                 }
 
                 CheckBox {
+                    width: parent.width
+                    text: qsTr("Automatically reconnect after a network interruption")
+                    font.pointSize: 12
+                    checked: StreamingPreferences.autoReconnect
+                    onCheckedChanged: StreamingPreferences.autoReconnect = checked
+                    ToolTip.text: qsTr("Resume the same running game, up to 12 attempts with backoff. Intentional disconnects are never retried.")
+                    ToolTip.visible: hovered
+                }
+
+                CheckBox {
                     id: configurationWarningsCheck
                     width: parent.width
                     text: qsTr("Show configuration warnings")

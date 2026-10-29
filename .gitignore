@@ -5,5 +5,9 @@
 .vscode/
 build/
 libs/
+dist/
+build-deps*.log
+build-resilient.log
+eatmydata.deb
 config.tests/*/.qmake.stash
 config.tests/*/Makefile

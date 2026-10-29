@@ -32,6 +32,16 @@ was 59.43 FPS. A separate software-decoded run averaged 1.58 ms decoding and
 59.30 FPS rendering. These are observations on one machine and scene, not a
 controlled cross-client benchmark.
 
+The first fix skipped NVIDIA VAAPI on Wayland and allowed software decoding.
+The later VAAPI/SDL path was clear in the recorded test, but the first fix was
+preferred in use and is restored as the default. Forced VAAPI remains available
+with `FORCE_VAAPI=1` and still avoids EGL import. With 189 MB free on the display
+GPU, a software-decoded stream using Vulkan rendering selected the other GPU,
+dropped frames, and lost its window. Selecting SDL rendering for the same
+software decoder rendered 59.82 FPS with no network frame drops in a follow-up
+run. The portable launcher now prefers SDL on NVIDIA Wayland unless the user
+sets `VULKAN_IS_SLOW` explicitly.
+
 The exact `v6.2.0-moonbeam.2` candidate from [run 40954444687](https://github.com/Spaceghost/moonbeam/actions/runs/40954444687)
 was installed and checked on the same desktop before tagging. The three-pass
 hardware self-test passed. A visually inspected 1920×1080, 60 FPS stream was

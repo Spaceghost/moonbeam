@@ -1,1 +1,1 @@
-6.2.0-moonbeam.2
+6.2.0-moonbeam.3

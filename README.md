@@ -38,7 +38,7 @@ The portable release targets **Linux x86_64 with glibc 2.35+**, including Bazzit
 
 Tests exercise the real reconnect QML with simulated transport events, termination policy, cancellation, retry limits, and installer migration/idempotency. Run the installer tests with `python3 tests/test_installer.py`; the container builder runs the Qt tests. No test interrupts an existing game session.
 
-Run `moonbeam selftest` inside a graphical desktop to test hardware decoding and renderer recreation three times. This exercises the client path without connecting to a host or quitting a running game. For release validation, also check a real stream and audio.
+Run `moonbeam selftest` inside a graphical desktop to test the automatically selected decoder and renderer three times. This exercises the client path without connecting to a host or quitting a running game. For release validation, also check a real stream and audio.
 
 ## Releases and backports
 

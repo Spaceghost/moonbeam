@@ -41,7 +41,7 @@ jobs:
           # GPU and desktop libraries intentionally come from the target host.
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
-            libva-wayland2 libva-x11-2 libegl1 libgl1 libvulkan1 libx11-6 \
+            libva-wayland2 libva-x11-2 libegl1 libgl1 libopengl0 libvulkan1 libx11-6 \
             libwayland-client0 libdrm2 libfontconfig1 libglib2.0-0 \
             libharfbuzz0b libfreetype6
           version="$(cat app/moonbeam-version.txt)+g${GITHUB_SHA:0:12}"

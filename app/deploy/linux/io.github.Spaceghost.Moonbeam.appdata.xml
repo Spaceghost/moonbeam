@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-	<id>com.moonlight_stream.Moonlight</id>
+	<id>io.github.Spaceghost.Moonbeam</id>
 	<metadata_license>CC0-1.0</metadata_license>
 	<project_license>GPL-3.0+</project_license>
-	<name>Moonlight</name>
+	<name>Moonbeam</name>
 	<summary>Stream games and other applications from another PC running Sunshine or GeForce Experience</summary>
 
 	<description>
@@ -20,17 +20,16 @@
 		</ul>
 	</description>
 
-	<url type="homepage">https://moonlight-stream.org</url>
-	<url type="bugtracker">https://github.com/moonlight-stream/moonlight-qt/issues</url>
+	<url type="homepage">https://github.com/Spaceghost/moonbeam</url>
+	<url type="bugtracker">https://github.com/Spaceghost/moonbeam/issues</url>
 	<url type="help">https://github.com/moonlight-stream/moonlight-docs/wiki/Setup-Guide</url>
-	<url type="vcs-browser">https://github.com/moonlight-stream/moonlight-qt</url>
-	<developer id="org.moonlight-stream">
-		<name>Moonlight Game Streaming Team</name>
+	<url type="vcs-browser">https://github.com/Spaceghost/moonbeam</url>
+	<developer id="io.github.Spaceghost">
+		<name>Moonbeam contributors and the Moonlight Game Streaming Team</name>
 	</developer>
-	<update_contact>cameron@moonlight-stream.org</update_contact>
-	<launchable type="desktop-id">com.moonlight_stream.Moonlight.desktop</launchable>
+	<launchable type="desktop-id">io.github.Spaceghost.Moonbeam.desktop</launchable>
 	<provides>
-		<binary>moonlight</binary>
+		<binary>moonbeam</binary>
 	</provides>
 	<content_rating type="oars-1.1" />	
 

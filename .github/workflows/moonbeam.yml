@@ -1,0 +1,35 @@
+name: Moonbeam checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - name: Install Qt test dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends build-essential python3 qt6-base-dev \
+            qt6-declarative-dev libqt6opengl6-dev qml6-module-qtquick-controls \
+            qml6-module-qtquick-templates qml6-module-qtquick-window qml6-module-qtqml-workerscript \
+            qml6-module-qtquick qml6-module-qtquick-layouts
+      - name: Installer tests
+        run: python3 tests/test_installer.py
+      - name: Reconnect tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          mkdir -p build/reconnect-tests
+          cd build/reconnect-tests
+          qmake6 ../../tests/reconnect/reconnect.pro
+          make -j2
+          STREAM_SEGUE_SOURCE="$GITHUB_WORKSPACE/app/gui/StreamSegue.qml" ./reconnect-test

@@ -1,7 +1,7 @@
 [Desktop Entry]
-Name=Moonlight Resilient
+Name=Moonbeam
 Comment=Stream games and other applications from another PC running Sunshine or GeForce Experience
-Exec=moonlight
+Exec=moonbeam
 Icon=moonlight
 Terminal=false
 Type=Application

@@ -1,11 +1,11 @@
-# Moonlight Resilient
+# Moonbeam
 
-A local fork of Moonlight Qt 6.2.0 with automatic recovery from dropped streams.
+A fork of Moonlight Qt 6.2.0 with automatic recovery from dropped streams.
 
-Extract the Linux x86_64 tarball and run `./install.sh`. Open **Moonlight Resilient**
-from your applications menu, or run `~/.local/bin/moonlight-resilient`.
+Extract the Linux x86_64 tarball and run `./install.sh`. Open **Moonbeam**
+from your applications menu, or run `~/.local/bin/moonbeam`.
 No root access, Flatpak runtime, FUSE, or system image changes are required.
-You can also run `Moonlight-Resilient.AppDir/AppRun` directly without installing.
+You can also run `Moonbeam.AppDir/AppRun` directly without installing.
 The AppImage is a separate single-file option; on systems without FUSE, run it
 with `--appimage-extract-and-run`.
 
@@ -30,15 +30,15 @@ Linux x86_64 build targets glibc 2.35 or later, including Bazzite/Fedora and
 Ubuntu 22.04+. GPU drivers come from the host. This binary does not run on
 Windows, macOS, ARM Linux, iOS, or tvOS; those require separate native builds.
 
-Build: run `bash scripts/build-resilient-container.sh` on Linux with Podman.
+Build: run `bash scripts/build-moonbeam-container.sh` on Linux with Podman.
 The modified C++/QML client compiles locally in Ubuntu 22.04. Decoder dependencies
 come from the SHA-256-pinned official Moonlight 6.2.0 AppImage (FFmpeg 9,
 libplacebo 374, SDL3), with matching public headers. This retains NVIDIA Vulkan
 hardware decoding. Packaging uses linuxdeploy and its Qt plugin. See
-`scripts/prepare-resilient-sdk.py` for exact versions and checksums. The GPLv3
+`scripts/prepare-moonbeam-sdk.py` for exact versions and checksums. The GPLv3
 client source is included as a separate archive alongside the binary bundle.
 
-Uninstall: remove `~/.local/bin/moonlight-resilient`, the
-`com.moonlight_stream.Moonlight.Resilient.desktop` application entry, and
-`~/.local/share/moonlight-resilient`. Your separate settings remain in
-`~/.config/Moonlight Game Streaming Project/Moonlight Resilient.conf`.
+Uninstall: remove `~/.local/bin/moonbeam`, the
+`io.github.Spaceghost.Moonbeam.desktop` application entry, and
+`~/.local/share/moonbeam`. Your separate settings remain in
+`~/.config/Moonlight Game Streaming Project/Moonbeam.conf`.

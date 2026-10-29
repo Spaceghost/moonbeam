@@ -1,114 +1,43 @@
-# Moonlight PC
+# Moonbeam
 
-[Moonlight PC](https://moonlight-stream.org) is an open source PC client for NVIDIA GameStream and [Sunshine](https://github.com/LizardByte/Sunshine).
+Moonbeam is a Moonlight Qt fork that automatically resumes your running game after a network interruption. It builds on [Moonlight](https://github.com/moonlight-stream/moonlight-qt) and works with Sunshine and compatible GameStream hosts.
 
-Moonlight also has mobile versions for [Android](https://github.com/moonlight-stream/moonlight-android) and [iOS](https://github.com/moonlight-stream/moonlight-ios).
+## Install
 
-You can follow development on our [Discord server](https://moonlight-stream.org/discord) and help translate Moonlight into your language on [Weblate](https://hosted.weblate.org/projects/moonlight/moonlight-qt/).
+Download the Linux x86_64 portable bundle from [Releases](https://github.com/Spaceghost/moonbeam/releases/latest), extract it, and run:
 
- [![Build](https://img.shields.io/github/actions/workflow/status/moonlight-stream/moonlight-qt/build.yml?branch=master)](https://github.com/moonlight-stream/moonlight-qt/actions/workflows/build.yml?query=branch%3Amaster)
- [![Downloads](https://img.shields.io/github/downloads/moonlight-stream/moonlight-qt/total)](https://github.com/moonlight-stream/moonlight-qt/releases)
- [![Translation Status](https://hosted.weblate.org/widgets/moonlight/-/moonlight-qt/svg-badge.svg)](https://hosted.weblate.org/projects/moonlight/moonlight-qt/)
+```sh
+./install.sh
+```
 
-## Features
- - Hardware accelerated video decoding on Windows, Mac, and Linux
- - H.264, HEVC, and AV1 codec support (AV1 requires Sunshine and a supported host GPU)
- - YUV 4:4:4 support (Sunshine only)
- - HDR streaming support
- - 7.1 surround sound audio support
- - 10-point multitouch support (Sunshine only)
- - Gamepad support with force feedback and motion controls for up to 16 players
- - Support for both pointer capture (for games) and direct mouse control (for remote desktop)
- - Support for passing system-wide keyboard shortcuts like Alt+Tab to the host
- 
-## Downloads
-- [Windows, macOS, and Steam Link](https://github.com/moonlight-stream/moonlight-qt/releases)
-- [Snap (for Ubuntu-based Linux distros)](https://snapcraft.io/moonlight)
-- [Flatpak (for other Linux distros)](https://flathub.org/apps/details/com.moonlight_stream.Moonlight)
-- [AppImage](https://github.com/moonlight-stream/moonlight-qt/releases)
-- [Raspberry Pi 4 and 5](https://github.com/moonlight-stream/moonlight-docs/wiki/Installing-Moonlight-Qt-on-Raspberry-Pi-4)
-- [Generic ARM 32-bit and 64-bit Debian packages](https://github.com/moonlight-stream/moonlight-docs/wiki/Installing-Moonlight-Qt-on-ARM%E2%80%90based-Single-Board-Computers) (not for Raspberry Pi)
-- [Experimental RISC-V Debian packages](https://github.com/moonlight-stream/moonlight-docs/wiki/Installing-Moonlight-Qt-on-RISC%E2%80%90V-Single-Board-Computers)
-- [NVIDIA Jetson and Nintendo Switch (Ubuntu L4T)](https://github.com/moonlight-stream/moonlight-docs/wiki/Installing-Moonlight-Qt-on-Linux4Tegra-(L4T)-Ubuntu)
+Launch **Moonbeam** from your applications menu, or run `~/.local/bin/moonbeam`. Installation needs no root access, FUSE, or changes to Bazzite's system image. An AppImage is available too. The installer imports this machine's existing Moonlight pairing and keeps Moonbeam settings separate. Existing settings from the earlier Moonlight Resilient build are migrated automatically.
 
-### Nightly Builds
-- [Downloads](https://nightly.link/moonlight-stream/moonlight-qt/workflows/build/master)
+Defaults are **1920×1080, 60 FPS, 30 Mbps**, frame pacing, and automatic reconnect. Adjust them in Settings to suit your network and hardware. The host/game must also render at 1080p for a true 1080p image.
 
-#### Special Thanks
+## Recovery
 
-[![Hosted By: Cloudsmith](https://img.shields.io/badge/OSS%20hosting%20by-cloudsmith-blue?logo=cloudsmith&style=flat-square)](https://cloudsmith.com)
+- Resume the same running app after the old connection has finished shutting down.
+- Retry up to 12 times with 1, 2, 4, 8, then 10 second delays; 30 seconds of stable streaming resets the budget.
+- Cancel recovery from the reconnect screen.
+- Stop when the original game has ended, another app is running, or the host reports an authentication or fatal encoding error.
+- Intentional disconnects are never retried. Automatic reconnect can be disabled in Settings.
 
-Hosting for Moonlight's Debian and L4T package repositories is graciously provided for free by [Cloudsmith](https://cloudsmith.com).
+Recovery reconnects a dropped stream; it does not prevent packet loss or repair a failing network. Recovery lifecycle tests pass, and NVIDIA Vulkan decoding and Wayland startup have been checked on Bazzite. A live network interruption during an active game has not yet been validated.
 
-## Building
+## Build and test
 
-### Windows Build Requirements
-* Qt 6.11 SDK or later (earlier versions may work but are not officially supported)
-* [Visual Studio 2026](https://visualstudio.microsoft.com/downloads/) (Community edition is fine)
-* Select **MSVC** option during Qt installation. MinGW is not supported.
-* [7-Zip](https://www.7-zip.org/) (only if building installers for non-development PCs)
-* Graphics Tools (only if running debug builds)
-  * Install "Graphics Tools" in the Optional Features page of the Windows Settings app.
-  * Alternatively, run `dism /online /add-capability /capabilityname:Tools.Graphics.DirectX~~~~0.0.1.0` and reboot.
+```sh
+git clone --recursive https://github.com/Spaceghost/moonbeam.git
+cd moonbeam
+bash scripts/build-moonbeam-container.sh
+```
 
-### macOS Build Requirements
-* Qt 6.11 SDK or later (earlier versions may work but are not officially supported)
-* Xcode 15 or later (earlier versions may work but are not officially supported)
-* [create-dmg](https://github.com/sindresorhus/create-dmg) (only if building DMGs for use on non-development Macs)
+The Podman builder compiles the modified client locally in Ubuntu 22.04 and writes portable packages to `dist/`. Decoder dependencies reuse a SHA-256-pinned official Moonlight 6.2.0 runtime, with matching public headers: FFmpeg 9, libplacebo 374, and SDL3. See [the dependency preparation script](scripts/prepare-moonbeam-sdk.py) and [packaging details](MOONBEAM.md).
 
-### Linux/Unix Build Requirements
-* Qt 6 is recommended, but Qt 5.12 or later is also supported (replace `qmake6` with `qmake` when using Qt 5).
-* GCC or Clang
-* FFmpeg 4.0 or later
-* Install the required packages:
-  * Debian/Ubuntu:
-    * Base Requirements: `libegl1-mesa-dev libgl1-mesa-dev libopus-dev libsdl2-dev libsdl2-ttf-dev libssl-dev libavcodec-dev libavformat-dev libswscale-dev libva-dev libvdpau-dev libxkbcommon-dev wayland-protocols libdrm-dev`
-    * Qt 6 (Recommended): `qt6-base-dev qt6-declarative-dev libqt6svg6-dev qt6-wayland qml6-module-qtquick-controls qml6-module-qtquick-templates qml6-module-qtquick-layouts qml6-module-qtqml-workerscript qml6-module-qtquick-window qml6-module-qtquick`
-    * Qt 5: `qtbase5-dev qt5-qmake qtdeclarative5-dev qtquickcontrols2-5-dev qml-module-qtquick-controls2 qml-module-qtquick-layouts qml-module-qtquick-window2 qml-module-qtquick2 qtwayland5`
-  * RedHat/Fedora (RPM Fusion repo required):
-    * Base Requirements: `openssl-devel SDL2-devel SDL2_ttf-devel ffmpeg-devel libva-devel libvdpau-devel opus-devel pulseaudio-libs-devel alsa-lib-devel libdrm-devel`
-    * Qt 6 (Recommended): `qt6-qtsvg-devel qt6-qtdeclarative-devel`
-    * Qt 5: `qt5-qtsvg-devel qt5-qtquickcontrols2-devel`
-* Building the Vulkan renderer requires a `libplacebo-dev`/`libplacebo-devel` version of at least v7.349.0 and FFmpeg 6.1 or later.
+The portable release targets **Linux x86_64 with glibc 2.35+**, including Bazzite/Fedora and Ubuntu 22.04+. Other operating systems and architectures require separate builds. Upstream platform build documentation is preserved in [UPSTREAM_README.md](UPSTREAM_README.md).
 
-### Steam Link Build Requirements
-* [Steam Link SDK](https://github.com/ValveSoftware/steamlink-sdk) cloned on your build system
-* STEAMLINK_SDK_PATH environment variable set to the Steam Link SDK path
+Tests exercise the real reconnect QML with simulated transport events, termination policy, cancellation, retry limits, and installer migration/idempotency. Run the installer tests with `python3 tests/test_installer.py`; the container builder runs the Qt tests. No test interrupts an existing game session.
 
-**Steam Link Hardware Limitations**  
-Moonlight builds for Steam Link are subject to hardware limitations of the Steam Link device:
-* Maximum resolution: **1080p (1920x1080)**
-* Maximum framerate: **60 FPS**
-* Maximum video bitrate: **40 Mbps**
-* **HDR streaming is not supported** on the original hardware
+## License and attribution
 
-### Docker containers
-If you want to use Docker for building, look at [this repo](https://github.com/cgutman/moonlight-packaging) containing canonical containers
-for different architectures, which handle building deps and extra linking for you.
-
-### Build Setup Steps
-1. Install the latest Qt SDK (and optionally, the Qt Creator IDE) from https://www.qt.io/download
-    * You can install Qt via Homebrew on macOS, but you will need to use `brew install qt --with-debug` to be able to create debug builds of Moonlight.
-    * You may also use your Linux distro's package manager for the Qt SDK as long as the packages are Qt 5.12 or later.
-    * This step is not required for building on Steam Link, because the Steam Link SDK includes Qt 5.14.
-2. Download submodules and dependencies
-    * Run `git submodule update --init --recursive` from within `moonlight-qt/`.
-    * On Windows and macOS, you must also run `setup-deps.ps1` (Windows) or `setup-deps.py` (macOS).
-    * Perform these steps each time you pull new changes from the Git repository.
-3. Open the project in Qt Creator or build from qmake on the command line.
-    * To build a binary for use on non-development machines, use the scripts in the `scripts` folder.
-        * For Windows builds, use `scripts\build-arch.bat` and `scripts\generate-bundle.bat`. Execute these scripts from the root of the repository within a Qt command prompt. Ensure  7-Zip binary directory is on your `%PATH%`.
-        * For macOS builds, use `scripts/generate-dmg.sh`. Execute this script from the root of the repository and ensure Qt's `bin` folder is in your `$PATH`.
-        * For Steam Link builds, run `scripts/build-steamlink-app.sh` from the root of the repository.
-    * To build from the command line for development use on macOS or Linux, run `qmake6 moonlight-qt.pro` then `make debug` or `make release`.
-        * The final binary will be placed in `app/moonlight`.
-    * To create an embedded build for a single-purpose device, use `qmake6 "CONFIG+=embedded" moonlight-qt.pro` and build normally.
-        * This build will lack windowed mode, Discord/Help links, and other features that don't make sense on an embedded device.
-        * For platforms with poor GPU performance, add `"CONFIG+=gpuslow"` to prefer direct KMSDRM rendering over GL/Vulkan renderers. Direct KMSDRM rendering can use dedicated YUV/RGB conversion and scaling hardware rather than slower GPU shaders for these operations.
-
-## Contribute
-1. Fork us
-2. Write code
-3. Send Pull Requests
-
-Check out our [website](https://moonlight-stream.org) for project links and information.
+Moonbeam retains Moonlight's **GPL-3.0-or-later** licensing; see [LICENSE](LICENSE). Original copyrights and notices remain in the source. Moonlight contributors developed the streaming client, protocol integration, decoders, and original artwork. Moonbeam adds recovery and portable packaging. Bundled third-party libraries retain their own licenses and notices.

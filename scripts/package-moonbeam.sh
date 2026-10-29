@@ -3,17 +3,17 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 root=$PWD
-version=6.2.0-resilient.2
+version=6.2.0-moonbeam.1
 mkdir -p build/native-vulkan build/tools dist
-python3 scripts/prepare-resilient-sdk.py
+python3 scripts/prepare-moonbeam-sdk.py
 export PKG_CONFIG_PATH="$root/build/deps/sdk/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 export LD_LIBRARY_PATH="$root/build/deps/sdk/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 cd build/native-vulkan
 qmake6 "$root/moonlight-qt.pro" CONFIG+=release CONFIG+=disable-libdrm PREFIX=/usr
 make qmake_all
 make -j"${BUILD_JOBS:-8}" release
-rm -rf "$root/build/Moonlight-Resilient.AppDir"
-make INSTALL_ROOT="$root/build/Moonlight-Resilient.AppDir" install
+rm -rf "$root/build/Moonbeam.AppDir"
+make INSTALL_ROOT="$root/build/Moonbeam.AppDir" install
 cd "$root/build/tools"
 for tool in linuxdeploy linuxdeploy-plugin-qt; do
     if [[ ! -x "$tool/AppRun" ]]; then
@@ -27,7 +27,7 @@ export QMAKE=qmake6 QML_SOURCES_PATHS="$root/app/gui" EXTRA_QT_MODULES="waylandc
 export PATH="$root/build/tools/bin:$PATH"
 mkdir -p bin
 ln -sfn "$root/build/tools/linuxdeploy-plugin-qt/AppRun" bin/linuxdeploy-plugin-qt
-appdir="$root/build/Moonlight-Resilient.AppDir"
+appdir="$root/build/Moonbeam.AppDir"
 mkdir -p "$appdir/opt"
 cp -a "$root/build/deps/sdk/opt/libva-fallback" "$appdir/opt/"
 # The Qt deploy plugin does not discover all Qt 6 Wayland platform plugins.
@@ -50,12 +50,12 @@ fi
 export QT_PLUGIN_PATH="$APPDIR/usr/plugins${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"
 export QML2_IMPORT_PATH="$APPDIR/usr/qml${QML2_IMPORT_PATH:+:$QML2_IMPORT_PATH}"
 export LD_LIBRARY_PATH="$APPDIR/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-exec "$APPDIR/usr/bin/moonlight" "$@"
+exec "$APPDIR/usr/bin/moonbeam" "$@"
 EOF
 chmod +x "$root/build/AppRun"
 cd "$root/dist"
 export VERSION="$version" APPIMAGE_EXTRACT_AND_RUN=1
-rm -f "$root/dist/Moonlight_Resilient-$version-x86_64.AppImage"
+rm -f "$root/dist/Moonbeam-$version-x86_64.AppImage"
 "$root/build/tools/linuxdeploy/AppRun" --appdir "$appdir" --plugin qt \
     --custom-apprun "$root/build/AppRun" \
     --library="$root/build/deps/sdk/lib/libSDL3.so.0" \
@@ -64,14 +64,14 @@ rm -f "$root/dist/Moonlight_Resilient-$version-x86_64.AppImage"
     --library=/usr/lib/x86_64-linux-gnu/libQt6WaylandEglClientHwIntegration.so.6 \
     --exclude-library='libva*.so*' --exclude-library='libwayland*.so*' \
     --output appimage
-bundle="$root/dist/moonlight-resilient-$version-linux-x86_64"
+bundle="$root/dist/moonbeam-$version-linux-x86_64"
 rm -rf "$bundle"
 mkdir -p "$bundle"
 cp -a "$appdir" "$bundle/"
-cp "$root/scripts/install-resilient.sh" "$bundle/install.sh"
-cp "$root/RESILIENT.md" "$bundle/README.md"
+cp "$root/scripts/install-moonbeam.sh" "$bundle/install.sh"
+cp "$root/MOONBEAM.md" "$bundle/README.md"
 cp "$root/LICENSE" "$bundle/"
 printf '%s\n' "$version" > "$bundle/VERSION"
 chmod +x "$bundle/install.sh"
-tar -czf "moonlight-resilient-$version-linux-x86_64.tar.gz" "$(basename "$bundle")"
+tar -czf "moonbeam-$version-linux-x86_64.tar.gz" "$(basename "$bundle")"
 sha256sum ./*.AppImage ./*.tar.gz > SHA256SUMS

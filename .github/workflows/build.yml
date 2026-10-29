@@ -1,13 +1,10 @@
 ---
-name: Build
+name: Upstream platform builds (reference)
 permissions:
   contents: read
 
 on:
-  push:
-  pull_request:
-    branches:
-      - master
+  workflow_call:
 
 concurrency:
   group: build-${{ github.ref }}

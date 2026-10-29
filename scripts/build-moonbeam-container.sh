@@ -2,9 +2,9 @@
 # Compile on an immutable Fedora/Bazzite host without modifying its OS image.
 set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
-storage="${MOONLIGHT_BUILD_STORAGE:-$(dirname "$root")/.moonlight-container-storage}"
-runtime="${MOONLIGHT_BUILD_RUNTIME:-$(dirname "$root")/.moonlight-container-run}"
-container=moonlight-resilient-build
+storage="${MOONBEAM_BUILD_STORAGE:-$(dirname "$root")/.moonbeam-container-storage}"
+runtime="${MOONBEAM_BUILD_RUNTIME:-$(dirname "$root")/.moonbeam-container-run}"
+container=moonbeam-build
 podman_cmd=(podman --storage-driver=vfs --root "$storage" --runroot "$runtime")
 if ! "${podman_cmd[@]}" container exists "$container"; then
     "${podman_cmd[@]}" run -d --name "$container" --security-opt label=disable \
@@ -21,7 +21,7 @@ fi
         libsdl2-dev libsdl2-ttf-dev libavcodec-dev libavutil-dev libswscale-dev libssl-dev libopus-dev \
         libva-dev libvdpau-dev libx11-dev libegl1-mesa-dev libdrm-dev patchelf desktop-file-utils \
         zsync squashfs-tools xvfb xauth
-    bash scripts/package-resilient.sh
+    bash scripts/package-moonbeam.sh
     mkdir -p build/reconnect-tests
     cd build/reconnect-tests
     qmake6 ../../tests/reconnect/reconnect.pro

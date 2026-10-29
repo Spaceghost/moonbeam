@@ -98,6 +98,7 @@ private:
     int m_WindowSystem;
     AVBufferRef* m_HwContext;
     bool m_BlacklistedForDirectRendering;
+    bool m_AvoidEglOnNvidiaWayland;
     bool m_HasRfiLatencyBug;
     bool m_RequiresExplicitPixelFormat;
 

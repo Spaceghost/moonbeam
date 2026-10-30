@@ -17,7 +17,7 @@ Defaults are **1920×1080, 60 FPS, 30 Mbps**, frame pacing, and automatic reconn
 ## Recovery
 
 - Resume the same running app after the old connection has finished shutting down.
-- Retry up to 12 times with 1, 2, 4, 8, then 10 second delays; 30 seconds of stable streaming resets the budget.
+- Keep retrying with 1, 2, 4, 8, then 10 second delays; 30 seconds of stable streaming resets the delay.
 - Cancel recovery from the reconnect screen.
 - Stop when the original game has ended, another app is running, or the host reports an authentication or fatal encoding error.
 - Intentional disconnects are never retried. Automatic reconnect can be disabled in Settings.
@@ -36,7 +36,7 @@ The Podman builder compiles the client in Ubuntu 22.04 and writes portable packa
 
 The portable release targets **Linux x86_64 with glibc 2.35+**, including Bazzite/Fedora and Ubuntu 22.04+. Other operating systems and architectures require separate builds. Upstream platform build documentation is preserved in [UPSTREAM_README.md](UPSTREAM_README.md).
 
-Tests exercise the real reconnect QML with simulated transport events, termination policy, cancellation, retry limits, and installer migration/idempotency. Run the installer tests with `python3 tests/test_installer.py`; the container builder runs the Qt tests. No test interrupts an existing game session.
+Tests exercise the real reconnect QML with simulated transport events, termination policy, cancellation, continued retries, and installer migration/idempotency. Run the installer tests with `python3 tests/test_installer.py`; the container builder runs the Qt tests. No test interrupts an existing game session.
 
 Run `moonbeam selftest` inside a graphical desktop to test the automatically selected decoder and renderer three times. This exercises the client path without connecting to a host or quitting a running game. For release validation, also check a real stream and audio.
 

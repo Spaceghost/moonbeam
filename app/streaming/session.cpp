@@ -634,6 +634,9 @@ Session* Session::createReconnectSession()
     // teardown must finish before another session is initialized.
     auto next = new Session(m_Computer, m_App, m_Preferences);
     next->m_IsReconnect = true;
+    // initialize() can fail before startConnectionAsync() sets this flag.
+    // Keep the retry path available even when a transient local setup fails.
+    next->m_ReconnectAllowed = true;
     return next;
 }
 

@@ -85,7 +85,8 @@ private slots:
     void lifecycle_data() {
         QTest::addColumn<QString>("scenario");
         for (auto name : {"recover", "cancel-wait", "cancel-cleanup", "cancel-connecting",
-                          "limit", "intentional", "stable-reset", "retry-failure"})
+                          "unbounded", "intentional", "stable-reset", "retry-failure",
+                          "initialize-failure"})
             QTest::newRow(name) << QString(name);
     }
     void lifecycle() {
@@ -105,7 +106,7 @@ private slots:
         item->setProperty("session", QVariant::fromValue(&original));
         item->setProperty("appName", "Test game");
         QVERIFY(QMetaObject::invokeMethod(item.data(), "hookSession"));
-        if (scenario == "limit") item->setProperty("retryAttempts", 12);
+        if (scenario == "unbounded") item->setProperty("retryAttempts", 12);
         if (scenario == "intentional") original.allowed = false;
         if (scenario == "stable-reset") {
             item->setProperty("retryAttempts", 12);
@@ -113,9 +114,9 @@ private slots:
         }
         dialog.text = scenario == "intentional" ? "" : "Network lost";
         emit original.sessionFinished(0);
-        if (scenario == "limit" || scenario == "intentional") {
+        if (scenario == "intentional") {
             QCOMPARE(stack.pops, 1);
-            QCOMPARE(dialog.opens, scenario == "limit" ? 1 : 0);
+            QCOMPARE(dialog.opens, 0);
             emit original.readyForDeletion();
             QCOMPARE(original.clones, 0);
             return;
@@ -123,7 +124,15 @@ private slots:
         QCOMPARE(stack.pops, 0);
         QVERIFY(item->property("retryPending").toBool());
         QCOMPARE(original.clones, 0); // Never start before old transport teardown.
-        QCOMPARE(item->property("retryAttempts").toInt(), 1);
+        QCOMPARE(item->property("retryAttempts").toInt(), scenario == "unbounded" ? 13 : 1);
+        if (scenario == "unbounded") {
+            emit original.readyForDeletion();
+            QCOMPARE(original.clones, 1);
+            QCOMPARE(item->findChild<QObject*>("reconnectTimer")->property("interval").toInt(), 10000);
+            QVERIFY(QMetaObject::invokeMethod(item.data(), "cancelReconnect"));
+            QCOMPARE(stack.pops, 1);
+            return;
+        }
         if (scenario == "cancel-cleanup") {
             QVERIFY(QMetaObject::invokeMethod(item.data(), "cancelReconnect"));
             emit original.readyForDeletion();
@@ -143,7 +152,16 @@ private slots:
             QCOMPARE(stack.pops, 1);
             return;
         }
+        if (scenario == "initialize-failure") next->initialized = false;
         timer->setProperty("interval", 1);
+        if (scenario == "initialize-failure") {
+            QTRY_COMPARE(item->property("retryAttempts").toInt(), 2);
+            QVERIFY(item->property("retryPending").toBool());
+            QCOMPARE(stack.pops, 0);
+            QVERIFY(QMetaObject::invokeMethod(item.data(), "cancelReconnect"));
+            QCOMPARE(stack.pops, 1);
+            return;
+        }
         QTRY_COMPARE(next->starts, 1);
         QVERIFY(dialog.text.isEmpty());
         if (scenario == "cancel-connecting") {

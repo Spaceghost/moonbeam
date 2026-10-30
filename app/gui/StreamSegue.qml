@@ -15,7 +15,7 @@ Item {
     property bool isResume : false
     property bool quitAfter : false
     property bool retryPending: false
-    property int retryAttempts: 0
+    property double retryAttempts: 0
     property double connectedAt: 0
     property bool retryConnecting: false
     property bool reconnectCancelled: false
@@ -114,10 +114,10 @@ Item {
             retryAttempts = 0
         connectedAt = 0
 
-        if (session.canReconnect && retryAttempts < 12) {
+        if (session.canReconnect) {
             retryAttempts++
             retryPending = true
-            stageText = qsTr("Connection lost. Reconnecting to %1 (%2/12)...").arg(appName).arg(retryAttempts)
+            stageText = qsTr("Connection lost. Reconnecting to %1 (attempt %2)...").arg(appName).arg(retryAttempts)
             stageSpinner.visible = true
             stageLabel.visible = true
             hintText.visible = false
@@ -170,7 +170,7 @@ Item {
             gc()
             session = next
             hookSession()
-            retryTimer.interval = Math.min(1000 * Math.pow(2, retryAttempts - 1), 10000)
+            retryTimer.interval = Math.min(1000 * Math.pow(2, Math.min(retryAttempts - 1, 4)), 10000)
             retryTimer.start()
             return
         }

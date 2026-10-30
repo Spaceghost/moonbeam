@@ -19,8 +19,8 @@ display or rendering resolution for a true 1080p image. Increase bitrate only if
 the network has enough spare capacity.
 
 Network failure resumes the same running app after complete connection cleanup,
-with up to 12 attempts at 1, 2, 4, 8, then 10 second intervals. A stream stable for
-30 seconds resets that budget. Cancel stops retries. Intentional disconnection,
+retrying at 1, 2, 4, 8, then 10 second intervals until it reconnects or you cancel.
+A stream stable for 30 seconds resets the retry delay. Intentional disconnection,
 host termination, authentication failures, protected content, and fatal encoder
 errors are not retried. Recovery verifies the original game is still running;
 it never starts a replacement game. Failed attempts retain the final error.

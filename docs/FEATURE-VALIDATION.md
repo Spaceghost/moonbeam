@@ -74,3 +74,28 @@ hardware decoding, and SDL without CLI overrides for those stream settings.
 The live log confirmed the requested stream mode and VAAPI/SDL path and reported
 29.66 rendered FPS. Global stream settings remained unchanged, removing the
 profile restored inheritance, and the original host app remained running.
+
+## Final rebased candidate — `1bd076c6`
+
+[Candidate run 42759841471](https://github.com/Spaceghost/moonbeam/actions/runs/42759841471)
+built every platform successfully. Downloaded assets passed all eight SHA-256
+checks, Windows x64/ARM64 PE checks, macOS universal/bundle-version checks,
+Steam Link ARM checks, Linux bundle checks, and recursive source-manifest checks.
+The tested Linux payload is `6.2.0-moonbeam.6+g1bd076c6284b`.
+
+On that exact Linux payload, hardware/SDL self-test passed three recreation
+cycles. Automatic profile application requested 1280×720 at 30 FPS and 12 Mbps,
+used VAAPI/SDL, and rendered at 30.05 FPS. Profile removal restored inheritance;
+global stream settings and the running host app were preserved.
+
+A further pair of approximately 35-second 1080p60 runs measured 28.1% of one
+CPU core with software/SDL and 19.2% with VAAPI/SDL. Average decode times were
+1.62 ms and 0.57 ms; average render times were 0.85 ms and 2.07 ms. Render rates
+were 58.93 and 59.08 FPS. These short observations have the same limitations as
+the earlier A/B runs and do not establish an end-to-end latency benefit.
+
+The exact rebased payload also recovered from another twelve-second complete
+network blackout, this time with no additional ongoing loss/delay imposed by
+the harness. It resumed the original app and showed clear live frames. The
+post-recovery overlay was near 60 FPS; the final session average was 58.71 FPS.
+The host app remained running, and all test clients exited normally.

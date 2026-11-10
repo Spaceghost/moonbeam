@@ -38,10 +38,14 @@ if [[ ! -f $rootfs/.moonbeam-ready ]]; then
     sed -i 's|http://|https://|g' "$rootfs/etc/apt/sources.list"
     printf '%s\n' 'APT::Sandbox::User "root";' 'Acquire::Retries "3";' \
         'Acquire::https::Timeout "30";' > "$rootfs/etc/apt/apt.conf.d/99moonbeam"
+    # Seed the guest-owned bundle for HTTPS bootstrap. Bind-mounting the host
+    # certificate directory breaks ca-certificates postinst under fake root.
+    mkdir -p "$rootfs/etc/ssl/certs"
+    cp /etc/ssl/certs/ca-certificates.crt "$rootfs/etc/ssl/certs/ca-certificates.crt"
     touch "$rootfs/.moonbeam-ready"
 fi
 # Bind the checkout and runner scratch only; no host credentials or sockets.
 exec proot -0 -R "$rootfs" -b "$PWD:/workspace" -b "$task_tmp:/ci-tmp" \
-    -b /etc/ssl/certs -w /workspace /usr/bin/env \
+    -w /workspace /usr/bin/env \
     HOME=/root TMPDIR=/ci-tmp TMP=/ci-tmp TEMP=/ci-tmp \
     GITHUB_WORKSPACE=/workspace BUILD_JOBS=2 QT_QPA_PLATFORM=offscreen "$@"

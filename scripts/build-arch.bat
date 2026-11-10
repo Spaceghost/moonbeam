@@ -120,7 +120,7 @@ rem Allow CI to override the version.txt with an environment variable
 if defined CI_VERSION (
     set VERSION=%CI_VERSION%
 ) else (
-    set /p VERSION=<%SOURCE_ROOT%\app\version.txt
+    set /p VERSION=<%SOURCE_ROOT%\app\moonbeam-version.txt
 )
 
 rem Use the correct VC tools for the specified architecture
@@ -191,7 +191,7 @@ if !ERRORLEVEL! EQU 0 (
     )
 )
 
-echo Compiling Moonlight in %BUILD_CONFIG% configuration
+echo Compiling Moonbeam in %BUILD_CONFIG% configuration
 pushd %BUILD_FOLDER%
 !JOM_CMD! %BUILD_CONFIG%
 if !ERRORLEVEL! NEQ 0 goto Error
@@ -204,12 +204,12 @@ for /r "%BUILD_FOLDER%" %%f in (*.pdb) do (
 )
 copy %SOURCE_ROOT%\libs\windows\lib\%ARCH%\*.pdb %SYMBOLS_FOLDER%
 if !ERRORLEVEL! NEQ 0 goto Error
-7z a %SYMBOLS_FOLDER%\MoonlightDebuggingSymbols-%ARCH%-%VERSION%.zip %SYMBOLS_FOLDER%\*.pdb
+7z a %SYMBOLS_FOLDER%\MoonbeamDebuggingSymbols-%ARCH%-%VERSION%.zip %SYMBOLS_FOLDER%\*.pdb
 if !ERRORLEVEL! NEQ 0 goto Error
 
 if "%ML_SYMBOL_STORE%" NEQ "" (
     echo Publishing PDBs to symbol store: %ML_SYMBOL_STORE%
-    symstore add /f %SYMBOLS_FOLDER%\*.pdb /s %ML_SYMBOL_STORE% /t Moonlight
+    symstore add /f %SYMBOLS_FOLDER%\*.pdb /s %ML_SYMBOL_STORE% /t Moonbeam
     if !ERRORLEVEL! NEQ 0 goto Error
 ) else (
     if "%MUST_DEPLOY_SYMBOLS%"=="1" (
@@ -220,7 +220,7 @@ if "%ML_SYMBOL_STORE%" NEQ "" (
 
 if "%ML_SYMBOL_ARCHIVE%" NEQ "" (
     echo Copying PDB ZIP to symbol archive: %ML_SYMBOL_ARCHIVE%
-    copy %SYMBOLS_FOLDER%\MoonlightDebuggingSymbols-%ARCH%-%VERSION%.zip %ML_SYMBOL_ARCHIVE%
+    copy %SYMBOLS_FOLDER%\MoonbeamDebuggingSymbols-%ARCH%-%VERSION%.zip %ML_SYMBOL_ARCHIVE%
     if !ERRORLEVEL! NEQ 0 goto Error
 ) else (
     if "%MUST_DEPLOY_SYMBOLS%"=="1" (
@@ -256,7 +256,7 @@ if not x%QT_PATH:\5.=%==x%QT_PATH% (
 )
 
 echo Deploying Qt dependencies
-%WINDEPLOYQT_CMD% --dir %DEPLOY_FOLDER% --%BUILD_CONFIG% --qmldir %SOURCE_ROOT%\app\gui --no-opengl-sw --no-compiler-runtime --no-sql %WINDEPLOYQT_ARGS% %BUILD_FOLDER%\app\%BUILD_CONFIG%\Moonlight.exe
+%WINDEPLOYQT_CMD% --dir %DEPLOY_FOLDER% --%BUILD_CONFIG% --qmldir %SOURCE_ROOT%\app\gui --no-opengl-sw --no-compiler-runtime --no-sql %WINDEPLOYQT_ARGS% %BUILD_FOLDER%\app\%BUILD_CONFIG%\Moonbeam.exe
 if !ERRORLEVEL! NEQ 0 goto Error
 
 echo Deleting unused files
@@ -276,7 +276,7 @@ del %DEPLOY_FOLDER%\icuuc.dll
 
 if "%SIGN%"=="1" (
     echo Signing deployed binaries
-    set FILES_TO_SIGN=%BUILD_FOLDER%\app\%BUILD_CONFIG%\Moonlight.exe
+    set FILES_TO_SIGN=%BUILD_FOLDER%\app\%BUILD_CONFIG%\Moonbeam.exe
     for /r "%DEPLOY_FOLDER%" %%f in (*.dll *.exe) do (
         set FILES_TO_SIGN=!FILES_TO_SIGN! %%f
     )
@@ -286,9 +286,9 @@ if "%SIGN%"=="1" (
 
 if "%ML_SYMBOL_STORE%" NEQ "" (
     echo Publishing binaries to symbol store: %ML_SYMBOL_STORE%
-    symstore add /r /f %DEPLOY_FOLDER%\*.* /s %ML_SYMBOL_STORE% /t Moonlight
+    symstore add /r /f %DEPLOY_FOLDER%\*.* /s %ML_SYMBOL_STORE% /t Moonbeam
     if !ERRORLEVEL! NEQ 0 goto Error
-    symstore add /r /f %BUILD_FOLDER%\app\%BUILD_CONFIG%\Moonlight.exe /s %ML_SYMBOL_STORE% /t Moonlight
+    symstore add /r /f %BUILD_FOLDER%\app\%BUILD_CONFIG%\Moonbeam.exe /s %ML_SYMBOL_STORE% /t Moonbeam
     if !ERRORLEVEL! NEQ 0 goto Error
 )
 
@@ -297,7 +297,7 @@ cmd /c "set VERSION= && msbuild -Restore %SOURCE_ROOT%\wix\Moonlight\Moonlight.w
 if !ERRORLEVEL! NEQ 0 goto Error
 
 echo Copying application binary to deployment directory
-copy %BUILD_FOLDER%\app\%BUILD_CONFIG%\Moonlight.exe %DEPLOY_FOLDER%
+copy %BUILD_FOLDER%\app\%BUILD_CONFIG%\Moonbeam.exe %DEPLOY_FOLDER%
 if !ERRORLEVEL! NEQ 0 goto Error
 
 echo Building portable package
@@ -306,22 +306,14 @@ rem and should not be harvested for inclusion in the full installer
 copy "%VC_REDIST_DLL_PATH%\*.dll" %DEPLOY_FOLDER%
 if !ERRORLEVEL! NEQ 0 goto Error
 
-rem Since we don't publish Windows installers for CI builds, let's use the user profile
-rem location of the regular non-portable version by default. We'll place a file in the
-rem the package to allow the user to rename if they want portable behavior.
-if defined CI_VERSION (
-    echo. > %DEPLOY_FOLDER%\portable.dat.inactive
-    if !ERRORLEVEL! NEQ 0 goto Error
-) else (
-    rem This file tells Moonlight that it's a portable installation
-    echo. > %DEPLOY_FOLDER%\portable.dat
-    if !ERRORLEVEL! NEQ 0 goto Error
-)
-
-7z a %INSTALLER_FOLDER%\MoonlightPortable-%ARCH%-%VERSION%.zip %DEPLOY_FOLDER%\*
+rem Keep portable settings alongside the binary; installer settings remain separate.
+echo. > %DEPLOY_FOLDER%\portable.dat
 if !ERRORLEVEL! NEQ 0 goto Error
 
-echo Build successful for Moonlight v%VERSION% %ARCH% binaries!
+7z a %INSTALLER_FOLDER%\MoonbeamPortable-%ARCH%-%VERSION%.zip %DEPLOY_FOLDER%\*
+if !ERRORLEVEL! NEQ 0 goto Error
+
+echo Build successful for Moonbeam v%VERSION% %ARCH% binaries!
 exit /b 0
 
 :Error

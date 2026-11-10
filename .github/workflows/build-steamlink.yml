@@ -1,5 +1,5 @@
 ---
-name: Build - Steam Link
+name: Build Moonbeam - Steam Link
 permissions:
   contents: read
 
@@ -14,6 +14,7 @@ jobs:
   build:
     env:
       CI_VERSION: ${{ inputs.ci_version }}
+      MOONBEAM_BUILD_VERSION: ${{ inputs.ci_version }}
     runs-on: ubuntu-22.04
 
     steps:
@@ -36,6 +37,6 @@ jobs:
       - name: Upload Binaries
         uses: actions/upload-artifact@v6
         with:
-          name: Moonlight-SteamLink-${{ env.CI_VERSION }}
-          path: build/deploy-release/*
+          name: moonbeam-SteamLink-${{ env.CI_VERSION }}
+          path: build/installer-release/Moonbeam-SteamLink-${{ env.CI_VERSION }}.zip
           if-no-files-found: error

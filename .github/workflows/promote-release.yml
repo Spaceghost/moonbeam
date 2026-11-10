@@ -34,8 +34,8 @@ jobs:
         run: |
           [[ "$VIDEO_VALIDATED" == true ]] || { echo 'Video validation is incomplete.'; exit 1; }
           [[ "$CANDIDATE_RUN_ID" =~ ^[0-9]+$ ]] || { echo 'Invalid run ID.'; exit 1; }
-          gh run download "$CANDIDATE_RUN_ID" --repo "$GITHUB_REPOSITORY" --dir candidate
-          manifest=$(find candidate -name candidate.json -print -quit)
-          test -n "$manifest"
+          gh run download "$CANDIDATE_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "moonbeam-candidate-$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$CANDIDATE_RUN_ID" --jq .head_sha)" --dir candidate
+          manifest=candidate/candidate.json
+          test -f "$manifest"
           python3 scripts/promote-release.py --repo "$GITHUB_REPOSITORY" \
             --run-id "$CANDIDATE_RUN_ID" --artifacts "$(dirname "$manifest")" --video-validated

@@ -1,8 +1,19 @@
 # Moonbeam
 
+[![Checks](https://github.com/Spaceghost/moonbeam/actions/workflows/moonbeam.yml/badge.svg)](https://github.com/Spaceghost/moonbeam/actions/workflows/moonbeam.yml)
+[![Release candidates](https://github.com/Spaceghost/moonbeam/actions/workflows/release-candidate.yml/badge.svg)](https://github.com/Spaceghost/moonbeam/actions/workflows/release-candidate.yml)
+
 Moonbeam is a Moonlight Qt fork that automatically resumes your running game after a network interruption. It builds on [Moonlight](https://github.com/moonlight-stream/moonlight-qt) and works with Sunshine and compatible GameStream hosts.
 
 ## Install
+
+[Release downloads](https://github.com/Spaceghost/moonbeam/releases/latest) currently
+contain Linux packages. The new release pipeline builds the same direct-download
+platforms as Moonlight: Windows universal installer and x64/ARM64 portable ZIPs,
+universal macOS DMG, Linux x86_64 AppImage, Steam Link ZIP, and source archive.
+Each complete release also includes the Linux portable installer bundle,
+SHA-256 checksums, and build provenance. See the [platform matrix and release
+process](docs/RELEASES.md). New platform packages remain candidates until validated.
 
 Download the Linux x86_64 portable bundle from [Releases](https://github.com/Spaceghost/moonbeam/releases/latest), extract it, and run:
 
@@ -34,15 +45,19 @@ bash scripts/build-moonbeam-container.sh
 
 The Podman builder compiles the client in Ubuntu 22.04 and writes portable packages to `dist/`. FFmpeg 9 and libplacebo 374 reuse a SHA-256-pinned official Moonlight runtime with matching public headers. Genuine SDL 2.32.10 is built from pinned source with Wayland and PulseAudio support. Host GPU and GLib libraries remain on the host. See [dependency preparation](scripts/prepare-moonbeam-sdk.py), [packaging details](MOONBEAM.md), and [client performance research](docs/CLIENT-RESEARCH.md).
 
-The portable release targets **Linux x86_64 with glibc 2.35+**, including Bazzite/Fedora and Ubuntu 22.04+. Other operating systems and architectures require separate builds. Upstream platform build documentation is preserved in [UPSTREAM_README.md](UPSTREAM_README.md).
+The portable release targets **Linux x86_64 with glibc 2.35+**, including Bazzite/Fedora and Ubuntu 22.04+. Native Windows, macOS, and Steam Link packages are built by the release workflow;
+see the [platform matrix](docs/RELEASES.md). Snap, Flatpak, and ARM Linux
+repositories linked by Moonlight distribute upstream Moonlight. They do not install Moonbeam. Upstream platform build documentation is preserved in [UPSTREAM_README.md](UPSTREAM_README.md).
 
-Tests exercise the real reconnect QML with simulated transport events, termination policy, cancellation, retry limits, and installer migration/idempotency. Run the installer tests with `python3 tests/test_installer.py`; the container builder runs the Qt tests. No test interrupts an existing game session.
+Tests exercise the real reconnect QML with simulated transport events, termination policy, cancellation, retry limits, and installer migration/idempotency. Run the installer tests with `python3 tests/test_installer.py`; the container builder runs the Qt tests. Release checks also run
+`python3 tests/test_release_promotion.py` and `python3 tests/test_release_artifacts.py`. No test interrupts an existing game session.
 
 Run `moonbeam selftest` inside a graphical desktop to test the automatically selected decoder and renderer three times. This exercises the client path without connecting to a host or quitting a running game. For release validation, also check a real stream and audio.
 
 ## Releases and backports
 
-Work uses branches and direct pushes. Push `release/**` to build and test a candidate; tagging is a separate promotion of the exact validated artifacts. Tags are immutable. Cherry-pick backports with `-x`, bump the Moonbeam patch version, and validate a new candidate before creating its tag. See [the release process](docs/RELEASES.md).
+Work uses branches and direct pushes. Push `release/**` to build and test a candidate; tagging is a separate promotion of the exact validated artifacts. Tags are immutable. Cherry-pick backports with `-x`, bump the Moonbeam patch version, and validate a new candidate before creating its tag. All platform builds must succeed before promotion. See [the release process](docs/RELEASES.md)
+and [contributing](CONTRIBUTING.md).
 
 ## License and attribution
 

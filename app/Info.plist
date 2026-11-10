@@ -5,7 +5,7 @@
 	<key>GCSupportsGameMode</key>
 	<true/>
 	<key>CFBundleExecutable</key>
-	<string>Moonlight</string>
+	<string>Moonbeam</string>
 	<key>LSSupportsGameMode</key>
 	<true/>
 	<key>NSApplicationUpdateCycleEnabled</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleIconFile</key>
 	<string>moonlight</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.moonlight-stream.Moonlight</string>
+	<string>io.github.Spaceghost.Moonbeam</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>CFBundlePackageType</key>
@@ -43,7 +43,7 @@
 		<true/>
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Moonlight uses the local network to connect to your gaming PC for streaming.</string>
+	<string>Moonbeam uses the local network to connect to your gaming PC for streaming.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_nvstream._tcp</string>
@@ -53,7 +53,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>VERSION</string>
 	<key>CFBundleDisplayName</key>
-	<string>Moonlight</string>
+	<string>Moonbeam</string>
     <key>LSApplicationCategoryType</key>
 	<string>public.app-category.games</string>
 </dict>

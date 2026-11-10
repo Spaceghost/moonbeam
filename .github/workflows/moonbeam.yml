@@ -25,6 +25,7 @@ jobs:
         run: |
           python3 tests/test_installer.py
           python3 tests/test_release_promotion.py
+          python3 tests/test_release_artifacts.py
       - name: Reconnect tests
         env:
           QT_QPA_PLATFORM: offscreen

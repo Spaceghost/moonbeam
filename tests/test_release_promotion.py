@@ -6,6 +6,9 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+from release_common import asset_names
 
 script = Path(__file__).resolve().parents[1] / 'scripts/promote-release.py'
 with tempfile.TemporaryDirectory(prefix='moonbeam-promotion-') as directory:
@@ -30,20 +33,33 @@ if '/git/ref/tags/' in sys.argv[-1]:
 raise SystemExit(2)
 ''')
     tool.chmod(0o755)
-    artifact = root / 'portable.tar.gz'
-    artifact.write_bytes(b'tested candidate bytes')
-    manifest = {'version':'6.2.0-moonbeam.2+gaaaaaaaa', 'base_version':'6.2.0-moonbeam.2',
+    version = '6.2.0-moonbeam.5+g' + 'a'*12
+    names = asset_names(version, complete=True)
+    for name in names:
+        (root / name).write_bytes(b'tested candidate bytes')
+    manifest = {'schema':2, 'complete':True, 'version':version,
+        'base_version':'6.2.0-moonbeam.5', 'branch':'release/6.2',
         'dirty':False, 'commit':'a'*40, 'run_id':42,
-        'sha256':{artifact.name:hashlib.sha256(artifact.read_bytes()).hexdigest()}}
+        'sha256':{name:hashlib.sha256((root / name).read_bytes()).hexdigest() for name in names}}
+
     cases = ['success','failed','wrong-branch','pull-request','tag-exists','api-failure',
-             'dirty','wrong-sha','wrong-run','tampered','missing-video','bad-version']
+             'dirty','wrong-sha','wrong-run','tampered','missing-video','bad-version',
+             'missing-platform','wrong-manifest-branch','wrong-version','incomplete','old-schema','bad-checksums','path-traversal']
     for case in cases:
         data = json.loads(json.dumps(manifest))
         if case=='dirty':data['dirty']=True
         if case=='wrong-sha':data['commit']='b'*40
         if case=='wrong-run':data['run_id']=43
-        if case=='tampered':data['sha256'][artifact.name]='0'*64
+        if case=='tampered':data['sha256'][names[0]]='0'*64
         if case=='bad-version':data['base_version']='invalid/version'
+        if case=='missing-platform':del data['sha256'][names[-1]]
+        if case=='wrong-manifest-branch':data['branch']='release/other'
+        if case=='wrong-version':data['version']='6.2.0-moonbeam.5+gbbbbbbbbbbbb'
+        if case=='incomplete':data['complete']=False
+        if case=='old-schema':data['schema']=1
+        if case=='path-traversal':data['sha256']['../private.txt']='0'*64
+        checksum = ''.join(f'{digest}  {name}\n' for name,digest in data['sha256'].items())
+        (root/'Moonbeam-SHA256SUMS').write_text(checksum if case!='bad-checksums' else 'wrong')
         (root/'candidate.json').write_text(json.dumps(data))
         marker = root / f'promoted-{case}'
         env=dict(os.environ, PATH=str(root)+os.pathsep+os.environ['PATH'], TEST_CASE=case, PROMOTED=str(marker))

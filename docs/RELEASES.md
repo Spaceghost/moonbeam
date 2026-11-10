@@ -39,12 +39,14 @@ The pool's CPU, memory, network, nesting and cleanup protections remain in force
 Windows and macOS use GitHub-hosted runners because no matching local platforms
 are admitted. Lightweight routing/version jobs also run on GitHub.
 
-The self-hosted pool runs Ubuntu 24.04. `scripts/ci-ubuntu.sh` uses a SHA-256-pinned
-Ubuntu 22.04 root filesystem through userspace PRoot to keep the release ABI at
-glibc 2.35 without enabling nested containers. PRoot is for compatibility; the
-existing ephemeral Incus guest supplies isolation. GitHub Ubuntu 22.04 workers
-call the same build/check scripts directly. Downloads are cached, not release
-binaries. Local immutable-system builds continue to use Podman.
+The admitted self-hosted pool runs native Ubuntu 24.04 for installer/release/Qt
+tests, Steam Link cross-builds and artifact assembly. The portable Linux build
+explicitly uses GitHub Ubuntu 22.04 to retain its glibc 2.35 compatibility baseline.
+No nested containers, userspace filesystem emulation or extra worker privileges
+are needed. `scripts/ci-ubuntu.sh` changes only official Ubuntu archive transport
+to HTTPS for the pool's network policy, retaining suites and signing keys.
+Downloads are cached, not release binaries. Local immutable-system builds
+continue to use the existing Ubuntu 22.04 Podman builder.
 
 Every master/release push rebuilds all platforms. A weekly scheduled run catches
 build-environment drift. Both checks and candidate workflows accept `runner`:

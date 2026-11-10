@@ -51,8 +51,10 @@ jobs:
       ci_version: ${{ needs.setup.outputs.version }}
 
   build:
-    needs: [setup, workers]
-    runs-on: ${{ fromJSON(needs.workers.outputs.linux) }}
+    needs: setup
+    # Portable packages must retain Ubuntu 22.04/glibc 2.35 compatibility.
+    # The admitted self-hosted software image is Ubuntu 24.04.
+    runs-on: ubuntu-22.04
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v5

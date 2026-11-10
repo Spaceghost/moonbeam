@@ -13,7 +13,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  setup:
+    if: startsWith(github.ref, 'refs/heads/release/')
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      native_version: ${{ steps.version.outputs.native_version }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Derive release versions
+        id: version
+        run: python3 scripts/release-version.py >> "$GITHUB_OUTPUT"
+
+  windows-macos:
+    needs: setup
+    uses: ./.github/workflows/build-win-mac.yml
+    with:
+      ci_version: ${{ needs.setup.outputs.version }}
+      native_version: ${{ needs.setup.outputs.native_version }}
+
+  steamlink:
+    needs: setup
+    uses: ./.github/workflows/build-steamlink.yml
+    with:
+      ci_version: ${{ needs.setup.outputs.version }}
+
   build:
+    needs: setup
     if: startsWith(github.ref, 'refs/heads/release/')
     runs-on: ubuntu-22.04
     timeout-minutes: 45
@@ -26,13 +52,15 @@ jobs:
         run: |
           python3 tests/test_installer.py
           python3 tests/test_release_promotion.py
+          python3 tests/test_release_artifacts.py
       - name: Build and test candidate
         run: |
           if ! command -v podman >/dev/null; then
             sudo apt-get update -qq
             sudo apt-get install -y podman uidmap slirp4netns
           fi
-          export MOONBEAM_BUILD_VERSION="$(cat app/moonbeam-version.txt)+g${GITHUB_SHA:0:12}"
+          MOONBEAM_BUILD_VERSION="$(cat app/moonbeam-version.txt)+g${GITHUB_SHA:0:12}"
+          export MOONBEAM_BUILD_VERSION
           bash scripts/build-moonbeam-container.sh
       - name: Verify portable startup and artifact checksums
         env:
@@ -51,12 +79,40 @@ jobs:
           sha256sum -c Moonbeam-SHA256SUMS
       - uses: actions/upload-artifact@v6
         with:
-          name: moonbeam-candidate-${{ github.sha }}
+          name: moonbeam-linux-${{ github.sha }}
           path: |
             dist/*.AppImage
             dist/*.tar.gz
             dist/Moonbeam-SHA256SUMS
             dist/candidate.json
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 30
+
+  assemble:
+    needs: [setup, build, windows-macos, steamlink]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: moonbeam-*
+          path: incoming
+      - name: Assemble complete release and verify checksums
+        env:
+          RELEASE_VERSION: ${{ needs.setup.outputs.version }}
+        run: |
+          mkdir -p dist
+          find incoming -type f \( -name '*.AppImage' -o -name '*.tar.gz' -o -name '*.exe' -o -name '*.zip' -o -name '*.dmg' \) ! -name '*DebuggingSymbols*' -exec cp -t dist -- {} +
+          python3 scripts/release-artifacts.py "$RELEASE_VERSION" --complete
+          cd dist
+          sha256sum -c Moonbeam-SHA256SUMS
+      - uses: actions/upload-artifact@v6
+        with:
+          name: moonbeam-candidate-${{ github.sha }}
+          path: dist/*
           compression-level: 0
           if-no-files-found: error
           retention-days: 30

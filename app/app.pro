@@ -1,7 +1,8 @@
 QT += core quick network quickcontrols2 svg
 CONFIG += c++17
 isEmpty(MOONBEAM_VERSION) {
-    MOONBEAM_VERSION = $$cat(moonbeam-version.txt)
+    MOONBEAM_VERSION = $$(MOONBEAM_BUILD_VERSION)
+    isEmpty(MOONBEAM_VERSION): MOONBEAM_VERSION = $$cat(moonbeam-version.txt)
 }
 DEFINES += MOONBEAM_VERSION_STR=\\\"$$MOONBEAM_VERSION\\\"
 
@@ -551,16 +552,19 @@ unix:!macx: {
 win32 {
     RC_ICONS = moonlight.ico
     QMAKE_TARGET_COMPANY = Moonlight Game Streaming Project
-    QMAKE_TARGET_DESCRIPTION = Moonlight Game Streaming Client
-    QMAKE_TARGET_PRODUCT = Moonlight
+    QMAKE_TARGET_DESCRIPTION = Moonbeam Game Streaming Client
+    QMAKE_TARGET_PRODUCT = Moonbeam
 
     CONFIG -= embed_manifest_exe
     QMAKE_LFLAGS += /MANIFEST:embed /MANIFESTINPUT:$${PWD}/Moonlight.exe.manifest
 }
+# Native installers require a numeric version. CI derives it from the fork version.
+MOONBEAM_NATIVE_VERSION = $$(MOONBEAM_NATIVE_VERSION)
+isEmpty(MOONBEAM_NATIVE_VERSION): MOONBEAM_NATIVE_VERSION = $$cat(version.txt)
 macx {
     # Create Info.plist in object dir with the correct version string
     system(cp $$PWD/Info.plist $$OUT_PWD/Info.plist)
-    system(sed -i -e 's/VERSION/$$cat(version.txt)/g' $$OUT_PWD/Info.plist)
+    system(sed -i -e 's/VERSION/$$MOONBEAM_NATIVE_VERSION/g' $$OUT_PWD/Info.plist)
 
     QMAKE_INFO_PLIST = $$OUT_PWD/Info.plist
 
@@ -582,5 +586,5 @@ macx {
     }
 }
 
-VERSION = "$$cat(version.txt)"
+VERSION = $$MOONBEAM_NATIVE_VERSION
 DEFINES += VERSION_STR=\\\"$$cat(version.txt)\\\"

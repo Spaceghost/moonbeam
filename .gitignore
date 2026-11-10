@@ -12,3 +12,8 @@ build-moonbeam.log
 eatmydata.deb
 config.tests/*/.qmake.stash
 config.tests/*/Makefile
+
+# Local Python and editor output
+__pycache__/
+*.py[cod]
+.qmake.stash

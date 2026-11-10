@@ -427,7 +427,7 @@ VAAPIRenderer::initialize(PDECODER_PARAMETERS params)
                     "VAAPI driver is affected by RFI latency bug");
     }
 
-    if (qgetenv("FORCE_VAAPI") != "1" && params->renderer != StreamingPreferences::RS_SDL) {
+    if (qgetenv("FORCE_VAAPI") != "1") {
         // Older versions of the Gallium VAAPI driver have a nasty memory leak that
         // causes memory to be leaked for each submitted frame. I believe this is
         // resolved in the libva2 drivers (VAAPI 1.x). We will try to use VDPAU
@@ -452,7 +452,9 @@ VAAPIRenderer::initialize(PDECODER_PARAMETERS params)
 #if !defined(HAVE_LIBPLACEBO_VULKAN) && !defined(HAVE_CUDA)
         preferOtherNvidiaDecoder &= m_WindowSystem == SDL_SYSWM_X11;
 #endif
-        if (vendorStr.contains("VA-API NVDEC", Qt::CaseInsensitive) &&
+        // SDL is an explicit opt-in for NVIDIA readback; keep unrelated driver safeguards.
+        if (params->renderer != StreamingPreferences::RS_SDL &&
+                vendorStr.contains("VA-API NVDEC", Qt::CaseInsensitive) &&
                 (preferOtherNvidiaDecoder || m_WindowSystem == SDL_SYSWM_WAYLAND)) {
             SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
                         "Deprioritizing VAAPI for NVIDIA driver. Set FORCE_VAAPI=1 to override.");

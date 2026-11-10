@@ -32,6 +32,10 @@ own certificates and provisioning. Upstream signing credentials are not reused.
 5. Verify `Moonbeam-SHA256SUMS` and validate these exact packages on target hardware
    before promotion. A successful cross-compile is not hardware validation.
 
+Linux CI builds directly on its Ubuntu 22.04 runner; local immutable-system
+builds use the Ubuntu 22.04 Podman container. Both call the same Linux build
+script with the same dependencies and packaging.
+
 The Linux builder runs installer and Qt reconnect tests and checks portable
 startup. The assembly job requires all eight package/source files, archives the
 tracked source with recursive submodules, and generates checksums and provenance.

@@ -55,13 +55,9 @@ jobs:
           python3 tests/test_release_artifacts.py
       - name: Build and test candidate
         run: |
-          if ! command -v podman >/dev/null; then
-            sudo apt-get update -qq
-            sudo apt-get install -y podman uidmap slirp4netns
-          fi
           MOONBEAM_BUILD_VERSION="$(cat app/moonbeam-version.txt)+g${GITHUB_SHA:0:12}"
           export MOONBEAM_BUILD_VERSION
-          bash scripts/build-moonbeam-container.sh
+          bash scripts/build-moonbeam-linux.sh
       - name: Verify portable startup and artifact checksums
         env:
           QT_QPA_PLATFORM: offscreen

@@ -2,6 +2,11 @@
 #include <Limelight.h>
 
 namespace ReconnectPolicy {
+inline bool shouldQuitHost(bool unexpectedTermination, bool quitAppAfter, bool reconnectCancelled)
+{
+    return !unexpectedTermination && quitAppAfter && !reconnectCancelled;
+}
+
 inline bool canRetryTermination(int errorCode)
 {
     return errorCode != ML_ERROR_GRACEFUL_TERMINATION &&

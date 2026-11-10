@@ -1001,7 +1001,11 @@ int main(int argc, char *argv[])
         initialView = "qrc:/gui/PcView.qml";
         break;
     case GlobalCommandLineParser::VideoSelfTestRequested:
-        return Session::runVideoSelfTest() ? 0 : 1;
+        {
+            StreamCommandLineParser selfTestParser;
+            selfTestParser.parse(app.arguments(), StreamingPreferences::get(), false);
+            return Session::runVideoSelfTest() ? 0 : 1;
+        }
     case GlobalCommandLineParser::StreamRequested:
         {
             initialView = "qrc:/gui/CliStartStreamSegue.qml";

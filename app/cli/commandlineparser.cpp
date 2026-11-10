@@ -319,6 +319,16 @@ StreamCommandLineParser::StreamCommandLineParser()
         {"software", StreamingPreferences::VDS_FORCE_SOFTWARE},
         {"hardware", StreamingPreferences::VDS_FORCE_HARDWARE},
     };
+    m_RendererMap = {{"auto", StreamingPreferences::RS_AUTO}};
+#if defined(Q_OS_LINUX) || defined(Q_OS_DARWIN)
+    m_RendererMap.insert("vulkan", StreamingPreferences::RS_VULKAN);
+#endif
+#ifdef Q_OS_LINUX
+    m_RendererMap.insert("sdl", StreamingPreferences::RS_SDL);
+#elif defined(Q_OS_DARWIN)
+    m_RendererMap.insert("metal", StreamingPreferences::RS_METAL);
+    m_RendererMap.insert("avsbdl", StreamingPreferences::RS_AVSBDL);
+#endif
     m_CaptureSysKeysModeMap = {
         {"never",      StreamingPreferences::CSK_OFF},
         {"fullscreen", StreamingPreferences::CSK_FULLSCREEN},
@@ -330,19 +340,19 @@ StreamCommandLineParser::~StreamCommandLineParser()
 {
 }
 
-void StreamCommandLineParser::parse(const QStringList &args, StreamingPreferences *preferences)
+void StreamCommandLineParser::parse(const QStringList &args, StreamingPreferences *preferences, bool requireHost)
 {
     CommandLineParser parser;
     parser.setupCommonOptions();
-    parser.setApplicationDescription(
-        "\n"
-        "Starts directly streaming a given app."
-    );
-    parser.addPositionalArgument("stream", "Start stream");
+    parser.setApplicationDescription(requireHost ? "Starts directly streaming a given app." :
+                                     "Exercise the selected decoder and renderer without connecting to a host.");
+    parser.addPositionalArgument(requireHost ? "stream" : "selftest", requireHost ? "Start stream" : "Video self-test");
 
     // Add other arguments and options
-    parser.addPositionalArgument("host", "Host computer name, UUID, or IP address", "<host>");
-    parser.addPositionalArgument("app", "App to stream", "\"<app>\"");
+    if (requireHost) {
+        parser.addPositionalArgument("host", "Host computer name, UUID, or IP address", "<host>");
+        parser.addPositionalArgument("app", "App to stream", "\"<app>\"");
+    }
 
     parser.addFlagOption("720",  "1280x720 resolution");
     parser.addFlagOption("1080", "1920x1080 resolution");
@@ -353,6 +363,8 @@ void StreamCommandLineParser::parse(const QStringList &args, StreamingPreference
     parser.addValueOption("fps", "FPS");
     parser.addValueOption("bitrate", "bitrate in Kbps");
     parser.addValueOption("packet-size", "video packet size");
+    parser.addChoiceOption("video-renderer", "video renderer", m_RendererMap.keys());
+    parser.addToggleOption("game-profile", "saved per-game stream settings");
     parser.addChoiceOption("display-mode", "display mode", m_WindowModeMap.keys());
     parser.addChoiceOption("audio-config", "audio config", m_AudioConfigMap.keys());
     parser.addToggleOption("multi-controller", "multiple controller support");
@@ -509,9 +521,30 @@ void StreamCommandLineParser::parse(const QStringList &args, StreamingPreference
         preferences->videoDecoderSelection = mapValue(m_VideoDecoderMap, parser.getChoiceOptionValue("video-decoder"));
     }
 
+    preferences->useGameProfiles = parser.getToggleOptionValue("game-profile", true);
+    if (parser.isSet("video-renderer"))
+        preferences->rendererSelection = mapValue(m_RendererMap, parser.getChoiceOptionValue("video-renderer"));
+    preferences->explicitOverrides.clear();
+    const QMap<QString, QString> profileOptions = {
+        {"fps", "fps"}, {"bitrate", "bitrateKbps"}, {"video-codec", "videoCodecConfig"},
+        {"video-decoder", "videoDecoderSelection"}, {"video-renderer", "rendererSelection"},
+        {"frame-pacing", "framePacing"}, {"hdr", "enableHdr"}};
+    for (auto it = profileOptions.cbegin(); it != profileOptions.cend(); ++it) {
+        if (parser.isSet(it.key()) || ((it.key() == "frame-pacing" || it.key() == "hdr") && parser.isSet("no-" + it.key())))
+            preferences->explicitOverrides.insert(it.value());
+    }
+    if (displaySet) {
+        preferences->explicitOverrides.insert("width");
+        preferences->explicitOverrides.insert("height");
+    }
+    preferences->recomputeBitrateAfterProfile = !parser.isSet("bitrate") && (displaySet || parser.isSet("fps"));
+    if (preferences->recomputeBitrateAfterProfile) preferences->explicitOverrides.insert("bitrateKbps");
+
     // This method will not return and terminates the process if --version or
     // --help is specified
     parser.handleHelpAndVersionOptions();
+
+    if (!requireHost) return;
 
     // Verify that both host and app has been provided
     auto posArgs = parser.positionalArguments();

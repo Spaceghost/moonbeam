@@ -427,7 +427,7 @@ VAAPIRenderer::initialize(PDECODER_PARAMETERS params)
                     "VAAPI driver is affected by RFI latency bug");
     }
 
-    if (qgetenv("FORCE_VAAPI") != "1") {
+    if (qgetenv("FORCE_VAAPI") != "1" && params->renderer != StreamingPreferences::RS_SDL) {
         // Older versions of the Gallium VAAPI driver have a nasty memory leak that
         // causes memory to be leaked for each submitted frame. I believe this is
         // resolved in the libva2 drivers (VAAPI 1.x). We will try to use VDPAU

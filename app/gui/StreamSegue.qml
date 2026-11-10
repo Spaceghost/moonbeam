@@ -20,6 +20,8 @@ Item {
     property bool retryConnecting: false
     property bool reconnectCancelled: false
     property bool sessionStarted: false
+    property bool awaitingCleanup: false
+    property bool finished: false
 
     function cancelReconnect() {
         reconnectCancelled = true
@@ -31,8 +33,9 @@ Item {
             session.cancelReconnect()
         } else {
             retryConnecting = false
-            finishSession(0)
+            if (!awaitingCleanup) finishSession(0)
         }
+        if (awaitingCleanup) stageText = qsTr("Finishing connection cleanup…")
     }
 
     Keys.onEscapePressed: function(event) {
@@ -56,6 +59,7 @@ Item {
 
     function stageStarting(stage)
     {
+        if (reconnectCancelled || finished) return
         // Update the spinner text
         stageText = qsTr("Starting %1...").arg(stage)
     }
@@ -72,6 +76,7 @@ Item {
 
     function connectionStarted()
     {
+        if (reconnectCancelled || finished) return
         connectedAt = Date.now()
         retryConnecting = false
         // Hide the UI contents so the user doesn't
@@ -103,12 +108,13 @@ Item {
 
     function sessionFinished(portTestResult)
     {
+        if (finished || awaitingCleanup) return
+        awaitingCleanup = true
         sessionStarted = false
         retryConnecting = false
         if (reconnectCancelled) {
             streamSegueErrorDialog.text = ""
-            finishSession(0)
-            return
+            return // Wait for transport teardown before returning to the app grid.
         }
         if (connectedAt && Date.now() - connectedAt >= 30000)
             retryAttempts = 0
@@ -131,6 +137,11 @@ Item {
 
     function finishSession(portTestResult)
     {
+        if (finished) return
+        finished = true
+        retryPending = false
+        retryTimer.stop()
+        startSessionTimer.stop()
         if (portTestResult !== 0 && portTestResult !== -1 && streamSegueErrorDialog.text) {
             streamSegueErrorDialog.text += "\n\n" + qsTr("This PC's Internet connection is blocking Moonlight. Streaming over the Internet may not work while connected to this network.")
         }
@@ -164,7 +175,16 @@ Item {
 
     function sessionReadyForDeletion()
     {
-        if (retryPending) {
+        if (!awaitingCleanup) return
+        awaitingCleanup = false
+        session.stageStarting.disconnect(stageStarting)
+        session.stageFailed.disconnect(stageFailed)
+        session.connectionStarted.disconnect(connectionStarted)
+        session.displayLaunchError.disconnect(displayLaunchError)
+        session.quitStarting.disconnect(quitStarting)
+        session.sessionFinished.disconnect(sessionFinished)
+        session.readyForDeletion.disconnect(sessionReadyForDeletion)
+        if (retryPending && !reconnectCancelled && !finished) {
             var next = session.createReconnectSession()
             session = null
             gc()
@@ -178,6 +198,7 @@ Item {
         // and keeps other libraries (like SDL_TTF) around until it is deleted.
         session = null
         gc()
+        if (reconnectCancelled) finishSession(0)
     }
 
     StackView.onDeactivating: {
@@ -217,6 +238,7 @@ Item {
                 sessionReadyForDeletion()
                 return
             }
+            if (reconnectCancelled || finished) return
             startSessionTimer.interval = 0
             startSessionTimer.start()
         }

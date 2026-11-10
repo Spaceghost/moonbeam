@@ -300,6 +300,10 @@ CenteredGridView {
                     onTriggered: launchOrResumeSelectedApp(true)
                 }
                 NavigableMenuItem {
+                    text: qsTr("Stream settings…")
+                    onTriggered: profileDialog.edit(index, model.name)
+                }
+                NavigableMenuItem {
                     text: qsTr("Quit Game")
                     onTriggered: doQuitGame()
                     visible: model.running
@@ -373,6 +377,8 @@ CenteredGridView {
 
         onAccepted: quitApp()
     }
+
+    GameProfileDialog { id: profileDialog; profileModel: appModel }
 
     ScrollBar.vertical: ScrollBar {}
 }

@@ -15,13 +15,16 @@ NavigableDialog {
     property var decoders: [
         {text: qsTr("Automatic"), value: 0}, {text: qsTr("Hardware"), value: 1},
         {text: qsTr("Software"), value: 2}]
-    property var renderers: Qt.platform.os === "linux" ? [
+    property var rendererCandidates: Qt.platform.os === "linux" ? [
         {text: qsTr("Automatic"), value: 0}, {text: "SDL", value: 4}, {text: "Vulkan", value: 1}
     ] : Qt.platform.os === "osx" ? [
         {text: qsTr("Automatic"), value: 0}, {text: "Vulkan", value: 1},
         {text: "Metal", value: 2}, {text: "AVSampleBufferDisplayLayer", value: 3}
     ] : [{text: qsTr("Automatic"), value: 0}]
 
+    property var renderers: rendererCandidates.filter(function(renderer) {
+        return StreamingPreferences.availableRenderers().indexOf(renderer.value) >= 0
+    })
     property int selectedRenderer: rendererBox.currentIndex >= 0 ? renderers[rendererBox.currentIndex].value : 0
 
     title: qsTr("Stream settings — %1").arg(gameName)
@@ -100,9 +103,10 @@ NavigableDialog {
             ComboBox { id: codecBox; objectName: "profileCodec"; model: editor.codecs; textRole: "text" }
             Label { text: qsTr("Video decoder") }
             ComboBox { id: decoderBox; objectName: "profileDecoder"; model: editor.decoders; textRole: "text" }
-            Label { text: qsTr("Renderer") }
+            Label { text: qsTr("Renderer"); visible: editor.renderers.length > 1 }
             ComboBox {
                 id: rendererBox
+                visible: editor.renderers.length > 1
                 objectName: "profileRenderer"
                 model: editor.renderers
                 textRole: "text"

@@ -48,6 +48,31 @@ private slots:
         QVERIFY(!GameProfiles::save("", 1, {{"fps",120}}));
         QVERIFY(!GameProfiles::save("host", 0, {{"fps",120}}));
     }
+    void rendererCapabilities() {
+        const auto choices = StreamingPreferences::availableRenderers();
+        QVERIFY(choices.contains(QVariant(0)));
+#if defined(HAVE_FFMPEG) && defined(Q_OS_LINUX)
+        QVERIFY(choices.contains(QVariant(4)));
+        QVERIFY(GameProfiles::valid({{"rendererSelection",4},{"enableHdr",false}}));
+#elif defined(HAVE_FFMPEG) && defined(Q_OS_DARWIN)
+        QVERIFY(choices.contains(QVariant(2)));
+        QVERIFY(!choices.contains(QVariant(4)));
+#else
+        QCOMPARE(choices, QVariantList{0});
+        QVERIFY(!GameProfiles::valid({{"rendererSelection",4}}));
+#endif
+    }
+    void corruptProfileFallsBack() {
+        QVERIFY(GameProfiles::save("host", 7, {{"fps",120}}));
+        QSettings settings;
+        const auto key = settings.allKeys().first();
+        QVERIFY(key.endsWith("/fps"));
+        settings.setValue(key.left(key.size()-3) + "rendererSelection", 99);
+        settings.sync();
+        QVERIFY(GameProfiles::load("host",7).isEmpty());
+        QScopedPointer<StreamingPreferences> effective(StreamingPreferences::forApp(StreamingPreferences::get(),"host",7));
+        QCOMPARE(effective->fps,60);
+    }
     void snapshotAndReconnect() {
         auto global = StreamingPreferences::get();
         QVERIFY(GameProfiles::save("host", 7, {{"width",2560},{"fps",120}}));
@@ -79,9 +104,12 @@ private slots:
     void selftestOptions() {
         QScopedPointer<StreamingPreferences> base(StreamingPreferences::forApp(StreamingPreferences::get(),{},0,false));
         StreamCommandLineParser parser;
-        parser.parse({"moonbeam","selftest","--video-decoder","hardware","--video-renderer","sdl","--resolution","2560x1440"},base.data(),false);
+        const bool hasSdl = StreamingPreferences::availableRenderers().contains(QVariant(4));
+        const QString renderer = hasSdl ? "sdl" : "auto";
+        const auto expected = hasSdl ? StreamingPreferences::RS_SDL : StreamingPreferences::RS_AUTO;
+        parser.parse({"moonbeam","selftest","--video-decoder","hardware","--video-renderer",renderer,"--resolution","2560x1440"},base.data(),false);
         QCOMPARE(base->videoDecoderSelection,StreamingPreferences::VDS_FORCE_HARDWARE);
-        QCOMPARE(base->rendererSelection,StreamingPreferences::RS_SDL);
+        QCOMPARE(base->rendererSelection,expected);
         QCOMPARE(base->width,2560); QCOMPARE(base->height,1440);
     }
     void editor() {

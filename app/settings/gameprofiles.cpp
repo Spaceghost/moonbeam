@@ -23,6 +23,24 @@ QStringList GameProfiles::keys()
             "videoDecoderSelection", "rendererSelection", "framePacing", "enableHdr"};
 }
 
+QVariantList GameProfiles::availableRenderers()
+{
+    QVariantList result{0}; // Automatic is always available.
+#if defined(Q_OS_LINUX) && defined(HAVE_FFMPEG)
+    result.append(4); // SDL presentation for FFmpeg software/readback frames.
+#ifdef HAVE_LIBPLACEBO_VULKAN
+    result.append(1);
+#endif
+#elif defined(Q_OS_DARWIN) && defined(HAVE_FFMPEG)
+#ifdef HAVE_LIBPLACEBO_VULKAN
+    result.append(1);
+#endif
+    result.append(2); // Metal
+    result.append(3); // AVSampleBufferDisplayLayer
+#endif
+    return result;
+}
+
 bool GameProfiles::valid(const QVariantMap& values)
 {
     const auto allowed = keys();
@@ -42,13 +60,7 @@ bool GameProfiles::valid(const QVariantMap& values)
             if (!integer(value, 0, 2)) return false;
         } else if (key == "rendererSelection") {
             if (!integer(value, 0, 4)) return false;
-#ifdef Q_OS_LINUX
-            if (value.toInt() != 0 && value.toInt() != 1 && value.toInt() != 4) return false;
-#elif defined(Q_OS_DARWIN)
-            if (value.toInt() == 4) return false;
-#else
-            if (value.toInt() != 0) return false;
-#endif
+            if (!availableRenderers().contains(QVariant(value.toInt()))) return false;
         } else if (value.userType() != QMetaType::Bool) {
             return false;
         }

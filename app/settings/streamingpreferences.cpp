@@ -128,6 +128,11 @@ StreamingPreferences* StreamingPreferences::forApp(const StreamingPreferences* b
     return snapshot;
 }
 
+QVariantList StreamingPreferences::availableRenderers()
+{
+    return GameProfiles::availableRenderers();
+}
+
 void StreamingPreferences::reload()
 {
     QSettings settings;

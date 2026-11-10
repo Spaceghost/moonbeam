@@ -1,4 +1,5 @@
 #include "commandlineparser.h"
+#include "settings/gameprofiles.h"
 
 #include <QCommandLineParser>
 #include <QRegularExpression>
@@ -329,6 +330,11 @@ StreamCommandLineParser::StreamCommandLineParser()
     m_RendererMap.insert("metal", StreamingPreferences::RS_METAL);
     m_RendererMap.insert("avsbdl", StreamingPreferences::RS_AVSBDL);
 #endif
+    const auto supportedRenderers = GameProfiles::availableRenderers();
+    for (auto it = m_RendererMap.begin(); it != m_RendererMap.end();) {
+        if (!supportedRenderers.contains(QVariant(int(it.value())))) it = m_RendererMap.erase(it);
+        else ++it;
+    }
     m_CaptureSysKeysModeMap = {
         {"never",      StreamingPreferences::CSK_OFF},
         {"fullscreen", StreamingPreferences::CSK_FULLSCREEN},

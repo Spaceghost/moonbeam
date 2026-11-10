@@ -14,7 +14,7 @@ python3 tests/test_release_promotion.py
 python3 tests/test_release_artifacts.py
 ```
 
-GitHub Actions runs reconnect tests with Qt. On Linux,
+GitHub Actions runs reconnect and per-game profile tests with Qt. On Linux,
 `bash scripts/build-moonbeam-container.sh` builds portable packages and runs these
 Qt tests in an Ubuntu 22.04 Podman container. Build output belongs in `build/` and
 `dist/`; neither is committed. See [releases](docs/RELEASES.md) for the full

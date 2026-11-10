@@ -48,3 +48,12 @@ jobs:
           qmake6 ../../tests/profiles/profiles.pro
           make -j2
           GAME_PROFILE_SOURCE="$GITHUB_WORKSPACE/app/gui/profile-test.qml" ./profiles-test
+      - name: Minimal renderer capability tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          mkdir -p build/profile-minimal-tests
+          cd build/profile-minimal-tests
+          qmake6 ../../tests/profiles/profiles.pro CONFIG+=no_ffmpeg
+          make -j2
+          GAME_PROFILE_SOURCE="$GITHUB_WORKSPACE/app/gui/profile-test.qml" ./profiles-test

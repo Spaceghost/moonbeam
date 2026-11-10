@@ -25,6 +25,14 @@ Launch **Moonbeam** from your applications menu, or run `~/.local/bin/moonbeam`.
 
 Defaults are **1920×1080, 60 FPS, 30 Mbps**, frame pacing, and automatic reconnect. Adjust them in Settings to suit your network and hardware. The host/game must also render at 1080p for a true 1080p image.
 
+## Per-game profiles
+
+Right-click a game and choose **Stream settings…** to save its resolution, FPS,
+bitrate, codec, decoder, renderer, frame pacing, and HDR. Profiles are separate
+for each host/game and preserve global settings. **Use global settings** resets
+a profile. CLI flags override saved values; `--no-game-profile` bypasses them.
+See [profiles, NVIDIA options, and recovery](docs/PROFILES-AND-RECOVERY.md).
+
 ## Recovery
 
 - Resume the same running app after the old connection has finished shutting down.
@@ -33,7 +41,9 @@ Defaults are **1920×1080, 60 FPS, 30 Mbps**, frame pacing, and automatic reconn
 - Stop when the original game has ended, another app is running, or the host reports an authentication or fatal encoding error.
 - Intentional disconnects are never retried. Automatic reconnect can be disabled in Settings.
 
-Recovery reconnects a dropped stream; it does not prevent packet loss or repair a failing network. Recovery lifecycle tests pass, and NVIDIA Vulkan decoding and Wayland startup have been checked on Bazzite. A live network interruption during an active game has not yet been validated.
+Recovery reconnects a dropped stream; it does not prevent packet loss or repair a failing network. Recovery lifecycle tests pass, and NVIDIA Vulkan decoding and Wayland startup have been checked on Bazzite. A twelve-second isolated network blackout has been checked against a live stream,
+including same-app recovery and clear post-recovery pixels. See the
+[validation record](docs/FEATURE-VALIDATION.md).
 
 ## Build and test
 
@@ -49,7 +59,7 @@ The portable release targets **Linux x86_64 with glibc 2.35+**, including Bazzit
 see the [platform matrix](docs/RELEASES.md). Snap, Flatpak, and ARM Linux
 repositories linked by Moonlight distribute upstream Moonlight. They do not install Moonbeam. Upstream platform build documentation is preserved in [UPSTREAM_README.md](UPSTREAM_README.md).
 
-Tests exercise the real reconnect QML with simulated transport events, termination policy, cancellation, continued retries, and installer migration/idempotency. Run the installer tests with `python3 tests/test_installer.py`; the container builder runs the Qt tests. Release checks also run
+Tests exercise the real reconnect QML with simulated transport events, termination policy, cancellation, continued retries, and installer migration/idempotency. Run the installer tests with `python3 tests/test_installer.py`; the container builder runs the reconnect and profile Qt tests. Release checks also run
 `python3 tests/test_release_promotion.py` and `python3 tests/test_release_artifacts.py`. No test interrupts an existing game session.
 
 Run `moonbeam selftest` inside a graphical desktop to test the automatically selected decoder and renderer three times. This exercises the client path without connecting to a host or quitting a running game. For release validation, also check a real stream and audio.

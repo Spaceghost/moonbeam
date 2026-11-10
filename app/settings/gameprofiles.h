@@ -7,5 +7,6 @@ namespace GameProfiles {
 QVariantMap load(const QString& hostId, int appId);
 bool save(const QString& hostId, int appId, const QVariantMap& values);
 QStringList keys();
+QVariantList availableRenderers();
 bool valid(const QVariantMap& values);
 }

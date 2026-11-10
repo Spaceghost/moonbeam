@@ -69,7 +69,17 @@ with tempfile.TemporaryDirectory(prefix='moonbeam-artifacts-') as directory:
     with tarfile.open(source) as archive:
         entries = archive.getnames()
         assert any(name.endswith('/vendor/decoder/decoder.c') for name in entries)
+        archive.extractall(root / 'extracted', filter='data')
         assert not any('private.conf' in name or '/dist/' in name or '/.git/' in name for name in entries)
+    extracted = root / 'extracted' / f'moonbeam-{version}'
+    (extracted / 'dist').mkdir()
+    for name in names:
+        if not name.endswith('-source.tar.gz'):
+            shutil.copy2(repo / 'dist' / name, extracted / 'dist' / name)
+    rebuild = [sys.executable, str(extracted / 'scripts/release-artifacts.py'), version, '--complete']
+    result = subprocess.run(rebuild, env=env, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert json.loads((extracted / 'dist/candidate.json').read_text())['dirty']
     (repo / 'dist' / names[-1]).unlink()
     assert subprocess.run(cmd, env=env, capture_output=True).returncode != 0
     (repo / 'dist' / names[-1]).write_bytes(b'platform binary')

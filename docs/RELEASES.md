@@ -35,6 +35,8 @@ own certificates and provisioning. Upstream signing credentials are not reused.
 The Linux builder runs installer and Qt reconnect tests and checks portable
 startup. The assembly job requires all eight package/source files, archives the
 tracked source with recursive submodules, and generates checksums and provenance.
+The source archive includes a source manifest so it can build without `.git`;
+local source-archive rebuilds cannot be promoted as verified CI candidates.
 If any platform fails, no complete candidate is produced and promotion is blocked.
 
 Artifact versions are `BASE+gCOMMIT` (12 commit digits). Native installer versions

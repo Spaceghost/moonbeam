@@ -42,4 +42,12 @@ with tempfile.TemporaryDirectory(prefix='moonlight-installer-') as directory:
     subprocess.run(['bash', str(bundle / 'install.sh')], check=True, env=env)
     assert 'bitrate=25000' in target.read_text(), 'Migration must preserve the previous fork settings'
     assert legacy.exists(), 'Migration must retain the original config'
+    active = (home / '.local/share/moonbeam/current').readlink()
+    saved_settings = target.read_bytes()
+    app.write_text('#!/bin/sh\necho different-untested-bytes\n')
+    result = subprocess.run(['bash', str(bundle / 'install.sh')], env=env, capture_output=True)
+    assert result.returncode != 0, 'Different bytes must never silently reuse a stable version'
+    assert (home / '.local/share/moonbeam/current').readlink() == active
+    assert target.read_bytes() == saved_settings
+    assert subprocess.check_output([str(launcher)], text=True).strip() == 'portable-launch-ok'
     print('PASS: local-only pairing import, 1080p/60 defaults, permissions, paths with spaces, repeat install, user settings preserved')

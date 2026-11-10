@@ -6,6 +6,9 @@ permissions:
 on:
   workflow_call:
     inputs:
+      linux_runner:
+        required: true
+        type: string
       ci_version:
         required: true
         type: string
@@ -15,7 +18,8 @@ jobs:
     env:
       CI_VERSION: ${{ inputs.ci_version }}
       MOONBEAM_BUILD_VERSION: ${{ inputs.ci_version }}
-    runs-on: ubuntu-22.04
+    runs-on: ${{ fromJSON(inputs.linux_runner) }}
+    timeout-minutes: 60
 
     steps:
       - name: Checkout Repository
@@ -32,7 +36,15 @@ jobs:
           fetch-depth: 1
 
       - name: Build binaries
-        run: STEAMLINK_SDK_PATH=$PWD/steamlink-sdk scripts/build-steamlink-app.sh
+        run: |
+          bash scripts/ci-ubuntu.sh bash -c '
+            sudo_cmd=(); if [[ $EUID -ne 0 ]]; then sudo_cmd=(sudo); fi
+            "${sudo_cmd[@]}" apt-get update -qq
+            "${sudo_cmd[@]}" apt-get install -y --no-install-recommends build-essential git ca-certificates curl python3 zip libc6-i386 lib32stdc++6
+            export STEAMLINK_SDK_PATH=$PWD/steamlink-sdk
+            bash scripts/build-steamlink-app.sh
+          '
+
 
       - name: Upload Binaries
         uses: actions/upload-artifact@v6

@@ -3,14 +3,14 @@ import re
 
 
 def native_version(base):
-    match = re.fullmatch(r'(\d+)\.(\d+)\.(\d+)-moonbeam\.(\d+)', base)
+    match = re.fullmatch(r'(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)', base)
     if not match:
-        raise ValueError('Expected MAJOR.MINOR.PATCH-moonbeam.REVISION')
-    major, minor, patch, revision = map(int, match.groups())
-    # MSI ignores a fourth component. Reserve 1000 fork revisions per upstream patch.
-    if not (major <= 255 and minor <= 255 and revision < 1000 and patch * 1000 + revision <= 65535):
+        raise ValueError('Expected stable MAJOR.MINOR.PATCH without suffixes')
+    major, minor, patch = map(int, match.groups())
+    if not (major <= 255 and minor <= 255 and patch <= 65535):
         raise ValueError('Release version exceeds native installer limits')
-    return f'{major}.{minor}.{patch * 1000 + revision}'
+    return base
+
 
 
 def asset_names(version, complete=False):

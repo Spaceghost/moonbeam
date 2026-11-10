@@ -2,8 +2,16 @@ name: Moonbeam release candidate
 
 on:
   push:
-    branches: ['release/**']
+    branches: [master, 'release/**']
   workflow_dispatch:
+    inputs:
+      runner:
+        description: Linux capacity (github bypasses an unavailable local pool)
+        type: choice
+        options: [auto, github, self-hosted]
+        default: auto
+  schedule:
+    - cron: '23 9 * * 1'
 
 permissions:
   contents: read
@@ -13,8 +21,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  workers:
+    uses: ./.github/workflows/select-runner.yml
+    with:
+      runner: ${{ inputs.runner || 'auto' }}
   setup:
-    if: startsWith(github.ref, 'refs/heads/release/')
     runs-on: ubuntu-22.04
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -33,46 +44,31 @@ jobs:
       native_version: ${{ needs.setup.outputs.native_version }}
 
   steamlink:
-    needs: setup
+    needs: [setup, workers]
     uses: ./.github/workflows/build-steamlink.yml
     with:
+      linux_runner: ${{ needs.workers.outputs.linux }}
       ci_version: ${{ needs.setup.outputs.version }}
 
   build:
-    needs: setup
-    if: startsWith(github.ref, 'refs/heads/release/')
-    runs-on: ubuntu-22.04
-    timeout-minutes: 45
+    needs: [setup, workers]
+    runs-on: ${{ fromJSON(needs.workers.outputs.linux) }}
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
           submodules: recursive
-      - name: Installer checks
-        run: |
-          python3 tests/test_installer.py
-          python3 tests/test_release_promotion.py
-          python3 tests/test_release_artifacts.py
-      - name: Build and test candidate
-        run: |
-          MOONBEAM_BUILD_VERSION="$(cat app/moonbeam-version.txt)+g${GITHUB_SHA:0:12}"
-          export MOONBEAM_BUILD_VERSION
-          bash scripts/build-moonbeam-linux.sh
-      - name: Verify portable startup and artifact checksums
+      - uses: actions/cache@v4
+        with:
+          path: |
+            build/deps/*.AppImage
+            build/deps/*.tar.gz
+          key: linux-dependency-downloads-${{ hashFiles('scripts/prepare-moonbeam-sdk.py') }}
+      - name: Build, test and verify Linux packages on Ubuntu 22.04
         env:
-          QT_QPA_PLATFORM: offscreen
-        run: |
-          # GPU and desktop libraries intentionally come from the target host.
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            libva-wayland2 libva-x11-2 libegl1 libgl1 libopengl0 libvulkan1 libx11-6 \
-            libwayland-client0 libdrm2 libfontconfig1 libglib2.0-0 \
-            libharfbuzz0b libfreetype6
-          version="$(cat app/moonbeam-version.txt)+g${GITHUB_SHA:0:12}"
-          "dist/Moonbeam-$version-x86_64.AppImage" --appimage-extract-and-run --version
-          python3 scripts/release-artifacts.py "$version"
-          cd dist
-          sha256sum -c Moonbeam-SHA256SUMS
+          MOONBEAM_BUILD_VERSION: ${{ needs.setup.outputs.version }}
+        run: bash scripts/ci-ubuntu.sh bash scripts/ci-build-linux.sh
       - uses: actions/upload-artifact@v6
         with:
           name: moonbeam-linux-${{ github.sha }}
@@ -86,12 +82,14 @@ jobs:
           retention-days: 30
 
   assemble:
-    needs: [setup, build, windows-macos, steamlink]
-    runs-on: ubuntu-22.04
+    needs: [setup, workers, build, windows-macos, steamlink]
+    runs-on: ${{ fromJSON(needs.workers.outputs.linux) }}
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
         with:
           submodules: recursive
+          fetch-depth: 0
       - uses: actions/download-artifact@v7
         with:
           pattern: moonbeam-*
@@ -112,3 +110,14 @@ jobs:
           compression-level: 0
           if-no-files-found: error
           retention-days: 30
+      - name: Write build summary
+        env:
+          RELEASE_VERSION: ${{ needs.setup.outputs.version }}
+        run: |
+          {
+            echo "## Moonbeam $RELEASE_VERSION packages rebuilt"
+            echo 'Windows x64/ARM64, macOS universal, Linux AppImage/installer, Steam Link and complete source.'
+            echo "Source: $GITHUB_SHA"
+            echo "Download: moonbeam-candidate-$GITHUB_SHA (Artifacts above)."
+            echo 'Promotion requires decoder recreation and live stream validation of these exact bytes.'
+          } >> "$GITHUB_STEP_SUMMARY"

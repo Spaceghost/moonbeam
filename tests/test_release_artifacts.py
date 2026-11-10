@@ -14,9 +14,9 @@ project = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project / 'scripts'))
 from release_common import asset_names, native_version
 
-assert native_version('6.2.0-moonbeam.5') == '6.2.5'
-assert native_version('6.2.1-moonbeam.1') == '6.2.1001'
-for invalid in ['6.2.0', '6.2.0-moonbeam.1000', '../invalid', '256.2.0-moonbeam.1']:
+assert native_version('6.3.0') == '6.3.0'
+assert native_version('6.3.1') == '6.3.1'
+for invalid in ['6.2.0-moonbeam.5', '06.3.0', '6.3.0+g123', '6.3.0-rc1', '../invalid', '256.2.0', '6.3.65536']:
     try:
         native_version(invalid)
     except ValueError:
@@ -41,16 +41,18 @@ with tempfile.TemporaryDirectory(prefix='moonbeam-artifacts-') as directory:
     git('init', '-b', 'release/6.2', cwd=repo)
     (repo / 'scripts').mkdir()
     (repo / 'app').mkdir()
+    (repo / 'docs/releases').mkdir(parents=True)
+    (repo / 'docs/releases/6.3.0.md').write_text('# Moonbeam 6.3.0\n\nTest release notes.\n')
     (repo / 'dist').mkdir()
     (repo / '.gitignore').write_text('dist/\nprivate.conf\n__pycache__/\n')
-    (repo / 'app/moonbeam-version.txt').write_text('6.2.0-moonbeam.5\n')
+    (repo / 'app/moonbeam-version.txt').write_text('6.3.0\n')
     for name in ['release-artifacts.py', 'release_common.py']:
         shutil.copy2(project / 'scripts' / name, repo / 'scripts' / name)
     git('-c', 'protocol.file.allow=always', 'submodule', 'add', str(dependency), 'vendor/decoder', cwd=repo)
     git('add', '.', cwd=repo)
     git('commit', '-m', 'release fixture', cwd=repo)
     commit = git('rev-parse', 'HEAD', cwd=repo)
-    version = '6.2.0-moonbeam.5+g' + commit[:12]
+    version = '6.3.0'
     names = asset_names(version, complete=True)
     for name in names:
         if not name.endswith('-source.tar.gz'):
@@ -83,7 +85,8 @@ with tempfile.TemporaryDirectory(prefix='moonbeam-artifacts-') as directory:
     (repo / 'dist' / names[-1]).unlink()
     assert subprocess.run(cmd, env=env, capture_output=True).returncode != 0
     (repo / 'dist' / names[-1]).write_bytes(b'platform binary')
-    (repo / 'app/moonbeam-version.txt').write_text('6.2.0-moonbeam.6\n')
+    (repo / 'app/dirty-source.txt').write_text('uncommitted tracked source\n')
+    git('add', 'app/dirty-source.txt', cwd=repo)
     assert subprocess.run(cmd, env=env, capture_output=True).returncode == 0
     assert json.loads((repo / 'dist/candidate.json').read_text())['dirty']
 print('PASS: native versions, complete assets, checksums, submodule source, private-file exclusion, missing package, dirty source')

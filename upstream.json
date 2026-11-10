@@ -1,0 +1,6 @@
+{
+  "repository": "https://github.com/moonlight-stream/moonlight-qt.git",
+  "base_commit": "4113dd26be0907f2edf1805c7b9fd23766e17161",
+  "base_version": "6.2.0",
+  "policy": "Rebase and replay Moonbeam changes on upstream versions; retire patches only after upstream behavior is verified equivalent. Preserve published history and immutable tags."
+}

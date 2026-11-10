@@ -1,0 +1,25 @@
+name: Select admitted Moonbeam workers
+on:
+  workflow_call:
+    inputs:
+      runner:
+        type: string
+        default: auto
+    outputs:
+      linux:
+        value: ${{ jobs.select.outputs.linux }}
+permissions:
+  contents: read
+jobs:
+  select:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    outputs:
+      linux: ${{ steps.runner.outputs.linux }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: runner
+        env:
+          RUNNER_MODE: ${{ inputs.runner }}
+          SELF_HOSTED_ENABLED: ${{ vars.MOONBEAM_SELF_HOSTED }}
+        run: python3 scripts/ci-runner.py >> "$GITHUB_OUTPUT"

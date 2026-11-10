@@ -33,20 +33,23 @@ if '/git/ref/tags/' in sys.argv[-1]:
 raise SystemExit(2)
 ''')
     tool.chmod(0o755)
-    version = '6.2.0-moonbeam.5+g' + 'a'*12
+    version = '6.3.0'
     names = asset_names(version, complete=True)
     for name in names:
         (root / name).write_bytes(b'tested candidate bytes')
-    manifest = {'schema':2, 'complete':True, 'version':version,
-        'base_version':'6.2.0-moonbeam.5', 'branch':'release/6.2',
+    notes = b'# Moonbeam 6.3.0\n\nTest release notes.\n'
+    manifest = {'schema':3, 'complete':True, 'version':version,
+        'base_version':'6.3.0', 'branch':'release/6.2',
         'dirty':False, 'commit':'a'*40, 'run_id':42,
+        'release_notes_sha256':hashlib.sha256(notes).hexdigest(),
         'sha256':{name:hashlib.sha256((root / name).read_bytes()).hexdigest() for name in names}}
 
     cases = ['success','failed','wrong-branch','pull-request','tag-exists','api-failure',
              'dirty','wrong-sha','wrong-run','tampered','missing-video','bad-version',
-             'missing-platform','wrong-manifest-branch','wrong-version','incomplete','old-schema','bad-checksums','path-traversal']
+             'missing-platform','wrong-manifest-branch','wrong-version','incomplete','old-schema','bad-checksums','path-traversal','tampered-notes']
     for case in cases:
         data = json.loads(json.dumps(manifest))
+        (root / 'release-notes.md').write_bytes(notes if case != 'tampered-notes' else b'wrong notes')
         if case=='dirty':data['dirty']=True
         if case=='wrong-sha':data['commit']='b'*40
         if case=='wrong-run':data['run_id']=43

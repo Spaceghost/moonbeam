@@ -23,8 +23,8 @@ own certificates and provisioning. Upstream signing credentials are not reused.
 1. Integrate focused changes onto `master` using ordinary branches and direct pushes.
    Preserve upstream notices. Do not force-push or replace existing tags.
 2. Set `app/moonbeam-version.txt` to the next unused version, for example
-   `6.2.0-moonbeam.5`. Cherry-pick backports with `git cherry-pick -x`.
-3. Push that commit to `release/**` (for example `release/6.2-platforms`).
+   `6.3.0`. Cherry-pick backports with `git cherry-pick -x`.
+3. Push that commit to `release/**` (for example `release/6.3.0`).
    The **Moonbeam release candidate** workflow builds Linux, Windows x64/ARM64,
    universal macOS, and Steam Link. All builds use the same source commit.
 4. Download the final `moonbeam-candidate-COMMIT` artifact from a successful run.
@@ -32,9 +32,31 @@ own certificates and provisioning. Upstream signing credentials are not reused.
 5. Verify `Moonbeam-SHA256SUMS` and validate these exact packages on target hardware
    before promotion. A successful cross-compile is not hardware validation.
 
-Linux CI builds directly on its Ubuntu 22.04 runner; local immutable-system
-builds use the Ubuntu 22.04 Podman container. Both call the same Linux build
-script with the same dependencies and packaging.
+Linux CI uses the existing isolated, ephemeral Fedora Ubuntu software pool when
+`MOONBEAM_SELF_HOSTED=true` is enabled on this repository. Admission requires
+both the owner actor and triggering actor; fork/other-actor work uses GitHub.
+The pool's CPU, memory, network, nesting and cleanup protections remain in force.
+Windows and macOS use GitHub-hosted runners because no matching local platforms
+are admitted. Lightweight routing/version jobs also run on GitHub.
+
+The self-hosted pool runs Ubuntu 24.04. `scripts/ci-ubuntu.sh` uses a SHA-256-pinned
+Ubuntu 22.04 root filesystem through userspace PRoot to keep the release ABI at
+glibc 2.35 without enabling nested containers. PRoot is for compatibility; the
+existing ephemeral Incus guest supplies isolation. GitHub Ubuntu 22.04 workers
+call the same build/check scripts directly. Downloads are cached, not release
+binaries. Local immutable-system builds continue to use Podman.
+
+Every master/release push rebuilds all platforms. A weekly scheduled run catches
+build-environment drift. Both checks and candidate workflows accept `runner`:
+`auto`, `self-hosted`, or `github`. A busy self-hosted pool queues work; the
+`github` override starts an independent hosted build when local capacity is
+unavailable. No automatic publication or hardware attestation occurs.
+
+```sh
+gh workflow run release-candidate.yml --repo Spaceghost/moonbeam --ref release/6.3.0 -f runner=auto
+# Explicit hosted rebuild when the local pool cannot serve work:
+gh workflow run release-candidate.yml --repo Spaceghost/moonbeam --ref release/6.3.0 -f runner=github
+```
 
 The Linux builder runs installer and Qt reconnect tests and checks portable
 startup. The assembly job requires all eight package/source files, archives the
@@ -43,13 +65,15 @@ The source archive includes a source manifest so it can build without `.git`;
 local source-archive rebuilds cannot be promoted as verified CI candidates.
 If any platform fails, no complete candidate is produced and promotion is blocked.
 
-Artifact versions are `BASE+gCOMMIT` (12 commit digits). Native installer versions
-must be numeric: `MAJOR.MINOR.(PATCH * 1000 + REVISION)`, for example
-`6.2.0-moonbeam.5` becomes `6.2.5`. This gives MSI upgrades a monotonically
-increasing third component; a fourth component would be ignored by MSI.
-Revision must be below 1000, major/minor at most 255, and the computed patch at most
-65535. Always bump the fork revision before a new release, including backports.
-The full fork version is still reported by the client and used in asset names.
+Public versions, native versions and asset filenames use clean `MAJOR.MINOR.PATCH`,
+starting at **6.3.0**. Feature releases advance the minor series; reserve patch
+versions for focused maintenance. Do not add `-moonbeam.N`, `+gCOMMIT`, or candidate
+suffixes. MSI supports major/minor up to 255 and patch up to 65535. Provenance is
+in `candidate.json` and `SOURCE_MANIFEST.json`, bound to the successful run and
+exact commit. Old published versions and tags remain immutable. Different bytes
+cannot silently replace an installed bundle under the same version.
+
+Follow [upstream replay](UPSTREAM.md) for future Moonlight rebases.
 
 ## Validate and promote the exact bytes
 

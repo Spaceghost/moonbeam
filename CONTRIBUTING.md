@@ -9,6 +9,7 @@ integrate with ordinary direct pushes to `master`; pull requests are not require
 Never force-push or move a published release tag.
 
 ```sh
+python3 tests/test_ci_runner.py
 python3 tests/test_installer.py
 python3 tests/test_release_promotion.py
 python3 tests/test_release_artifacts.py
@@ -23,3 +24,5 @@ platform matrix, versioning, validation, and promotion process.
 Report fork-specific problems in the Moonbeam issue tracker. Include the full
 version and package name, reproduction steps, and relevant reviewed logs. Do not
 commit pairing keys, host configuration, private desktop recordings, or credentials.
+
+Follow [the upstream replay policy](docs/UPSTREAM.md) when taking new Moonlight versions.

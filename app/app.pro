@@ -562,7 +562,7 @@ win32 {
 }
 # Native installers require a numeric version. CI derives it from the fork version.
 MOONBEAM_NATIVE_VERSION = $$(MOONBEAM_NATIVE_VERSION)
-isEmpty(MOONBEAM_NATIVE_VERSION): MOONBEAM_NATIVE_VERSION = $$cat(version.txt)
+isEmpty(MOONBEAM_NATIVE_VERSION): MOONBEAM_NATIVE_VERSION = $$cat(moonbeam-version.txt)
 macx {
     # Create Info.plist in object dir with the correct version string
     system(cp $$PWD/Info.plist $$OUT_PWD/Info.plist)

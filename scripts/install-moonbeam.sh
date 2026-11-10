@@ -14,6 +14,9 @@ if [[ ! -e "$destination" ]]; then
     cp -a "$bundle/Moonbeam.AppDir/." "$stage/"
     mv -- "$stage" "$destination"
     trap - EXIT
+elif ! diff --brief --recursive --no-dereference "$bundle/Moonbeam.AppDir" "$destination" >/dev/null; then
+    echo "Different bytes are already installed as $version. Use a new version; the active installation was preserved." >&2
+    exit 1
 fi
 ln -sfn "$destination" "$install_root/current"
 ln -sfn "$install_root/current/AppRun" "$HOME/.local/bin/moonbeam"

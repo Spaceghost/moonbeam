@@ -19,6 +19,8 @@ args = parser.parse_args()
 version = args.version
 base_version = (root / 'app/moonbeam-version.txt').read_text().strip()
 native_version(base_version)
+if version != base_version:
+    parser.error('Artifact version must match the stable release version.')
 if (root / '.git').exists():
     submodules = subprocess.check_output(['git', 'submodule', 'status', '--recursive'], cwd=root, text=True)
     if any(line.startswith(('-', '+', 'U')) for line in submodules.splitlines()):
@@ -49,10 +51,14 @@ with tarfile.open(source, 'w:gz') as archive:
     archive.addfile(info, io.BytesIO(snapshot))
 files = [dist / name for name in asset_names(version, args.complete)]
 artifacts = {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in files}
-manifest = {'schema': 2, 'complete': args.complete, 'version': version,
+manifest = {'schema': 3, 'complete': args.complete, 'version': version,
             'base_version': base_version, 'dirty': dirty, 'commit': commit,
             'branch': os.environ.get('GITHUB_REF_NAME', branch),
             'run_id': os.environ.get('GITHUB_RUN_ID'), 'sha256': artifacts}
+if args.complete:
+    notes = (root / 'docs/releases' / f'{base_version}.md').read_bytes()
+    (dist / 'release-notes.md').write_bytes(notes)
+    manifest['release_notes_sha256'] = hashlib.sha256(notes).hexdigest()
 (dist / 'candidate.json').write_text(json.dumps(manifest, indent=2) + '\n')
 (dist / 'Moonbeam-SHA256SUMS').write_text(''.join(f'{digest}  {name}\n' for name, digest in artifacts.items()))
 print(json.dumps(manifest, indent=2))

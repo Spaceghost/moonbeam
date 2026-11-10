@@ -9,7 +9,22 @@ if [[ $ID == ubuntu && $VERSION_ID == 22.04 ]]; then
     exec "$@"
 fi
 [[ $(uname -m) == x86_64 ]] || { echo 'Requires an x86_64 worker'; exit 1; }
-sudo apt-get update -qq
+# The admitted pool permits HTTPS archive access. Keep suites and signing keys;
+# change only official Ubuntu archive transport, including deb822 source files.
+sudo python3 - <<'PY'
+from pathlib import Path
+import re
+paths = [Path('/etc/apt/sources.list'), *Path('/etc/apt/sources.list.d').glob('*.list'),
+         *Path('/etc/apt/sources.list.d').glob('*.sources')]
+for path in paths:
+    if path.is_file():
+        before = path.read_text()
+        after = re.sub(r'http://((?:[a-z]{2}\.)?archive\.ubuntu\.com|security\.ubuntu\.com|ports\.ubuntu\.com)/',
+                       r'https://\1/', before)
+        if before != after:
+            path.write_text(after)
+PY
+sudo apt-get -o Acquire::Retries=3 -o Acquire::https::Timeout=30 update -qq
 sudo apt-get install -y --no-install-recommends proot ca-certificates curl
 task_tmp=${RUNNER_TEMP:?RUNNER_TEMP is required}
 rootfs="$task_tmp/moonbeam-jammy"

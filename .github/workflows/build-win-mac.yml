@@ -50,6 +50,7 @@ jobs:
           npm install --global create-dmg
 
       - name: Install Qt
+        id: qt_host
         uses: jurplel/install-qt-action@v4
         with:
           dir: ${{ github.workspace }}/Qt
@@ -61,6 +62,7 @@ jobs:
           aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@073e34d7c2ab4ae6961ed7cca690b3abd5ba5a7e'
 
       - name: Install Qt ARM64 (Windows)
+        id: qt_arm64
         if: runner.os == 'Windows'
         uses: jurplel/install-qt-action@v4
         with:
@@ -78,7 +80,7 @@ jobs:
           set "PATH=%QT_PATH%;%PATH%"
           scripts\build-arch.bat Release x64
         env:
-          QT_PATH: ${{ github.workspace }}\Qt\${{ matrix.qt_version }}\msvc2022_64\bin
+          QT_PATH: ${{ steps.qt_host.outputs.qt-root-dir }}\bin
 
       - name: Build ARM64 binaries (Windows)
         if: runner.os == 'Windows'
@@ -87,7 +89,7 @@ jobs:
           set "PATH=%QT_PATH%;%PATH%"
           scripts\build-arch.bat Release arm64
         env:
-          QT_PATH: ${{ github.workspace }}\Qt\${{ matrix.qt_version }}\msvc2022_arm64\bin
+          QT_PATH: ${{ steps.qt_arm64.outputs.qt-root-dir }}\bin
 
       - name: Build Package
         shell: pwsh

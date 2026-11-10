@@ -26,7 +26,7 @@ for invalid in ['6.2.0', '6.2.0-moonbeam.1000', '../invalid', '256.2.0-moonbeam.
 
 with tempfile.TemporaryDirectory(prefix='moonbeam-artifacts-') as directory:
     root = Path(directory)
-    env = dict(os.environ, GIT_AUTHOR_NAME='Release Test', GIT_AUTHOR_EMAIL='test@example.invalid',
+    env = dict(os.environ, GITHUB_REF_NAME='release/6.2', GIT_AUTHOR_NAME='Release Test', GIT_AUTHOR_EMAIL='test@example.invalid',
                GIT_COMMITTER_NAME='Release Test', GIT_COMMITTER_EMAIL='test@example.invalid')
     def git(*args, cwd=root):
         return subprocess.check_output(['git', *args], cwd=cwd, env=env, stderr=subprocess.DEVNULL, text=True).strip()

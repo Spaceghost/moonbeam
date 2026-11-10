@@ -22,9 +22,10 @@ own certificates and provisioning. Upstream signing credentials are not reused.
 
 1. Integrate focused changes onto `master` using ordinary branches and direct pushes.
    Preserve upstream notices. Do not force-push or replace existing tags.
-2. Set `app/moonbeam-version.txt` to the next unused version, for example
-   `6.3.0`. Cherry-pick backports with `git cherry-pick -x`.
-3. Push that commit to `release/**` (for example `release/6.3.0`).
+2. Select the published Moonlight tag to mirror. Set `app/moonbeam-version.txt`
+   and `app/version.txt` to that exact version (for example `6.2.0`). Pin its
+   tag and release commit in `upstream.json`; keep backports attributable.
+3. Push that commit to `release/**` (for example `release/6.2.0-mirror`).
    The **Moonbeam release candidate** workflow builds Linux, Windows x64/ARM64,
    universal macOS, and Steam Link. All builds use the same source commit.
 4. Download the final `moonbeam-candidate-COMMIT` artifact from a successful run.
@@ -55,9 +56,9 @@ build-environment drift. Both checks and candidate workflows accept `runner`:
 unavailable. No automatic publication or hardware attestation occurs.
 
 ```sh
-gh workflow run release-candidate.yml --repo Spaceghost/moonbeam --ref release/6.3.0 -f runner=auto
+gh workflow run release-candidate.yml --repo Spaceghost/moonbeam --ref release/6.2.0-mirror -f runner=auto
 # Explicit hosted rebuild when the local pool cannot serve work:
-gh workflow run release-candidate.yml --repo Spaceghost/moonbeam --ref release/6.3.0 -f runner=github
+gh workflow run release-candidate.yml --repo Spaceghost/moonbeam --ref release/6.2.0-mirror -f runner=github
 ```
 
 The Linux builder runs installer and Qt reconnect tests and checks portable
@@ -67,15 +68,24 @@ The source archive includes a source manifest so it can build without `.git`;
 local source-archive rebuilds cannot be promoted as verified CI candidates.
 If any platform fails, no complete candidate is produced and promotion is blocked.
 
-Public versions, native versions and asset filenames use clean `MAJOR.MINOR.PATCH`,
-starting at **6.3.0**. Feature releases advance the minor series; reserve patch
-versions for focused maintenance. Do not add `-moonbeam.N`, `+gCOMMIT`, or candidate
-suffixes. MSI supports major/minor up to 255 and patch up to 65535. Provenance is
-in `candidate.json` and `SOURCE_MANIFEST.json`, bound to the successful run and
-exact commit. Old published versions and tags remain immutable. Different bytes
-cannot silently replace an installed bundle under the same version.
+Moonbeam mirrors **the exact Moonlight release versions**. Moonlight `v6.2.0`
+corresponds to Moonbeam `v6.2.0`, with Moonbeam's changes replayed on top. The next
+Moonbeam version advances only when the corresponding Moonlight release exists.
+There is no independent minor/patch series and no `-moonbeam.N` or `+gCOMMIT`
+suffix. Do not select a new version just to package more fork changes.
 
-Follow [upstream replay](UPSTREAM.md) for future Moonlight rebases.
+`upstream.json` pins the official release tag, version and commit. CI verifies the
+public upstream release and actual Git tag object before building. Packaging and
+promotion reject a version that differs from that pin or `app/version.txt`.
+Schema 4 `candidate.json` and `SOURCE_MANIFEST.json` record the upstream counterpart
+and exact Moonbeam source commit, independently of the public version number.
+MSI supports major/minor up to 255 and patch up to 65535. Different bytes cannot
+silently replace an installed bundle under the same version.
+
+Follow [upstream replay](UPSTREAM.md) when Moonlight releases another version.
+Published tags are immutable; additional builds remain CI artifacts until the
+next matching upstream release. The former independent v6.3.0 publication was a
+versioning mistake, not the beginning of a separate Moonbeam series.
 
 ## Validate and promote the exact bytes
 

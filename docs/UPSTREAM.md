@@ -1,23 +1,28 @@
-# Following Moonlight
+# Mirroring Moonlight releases
 
-Moonbeam follows Moonlight's version series, with clean Moonbeam releases starting
-at v6.3.0. Continue rebasing and replaying Moonbeam's work on upstream versions
-until upstream implements equivalent behavior. Keep fixes small and attributable;
-drop a patch only after its behavior is verified in upstream.
+Moonbeam mirrors the **exact published Moonlight release tags and version numbers**,
+with Moonbeam changes replayed on top. Moonlight v6.2.0 means Moonbeam v6.2.0;
+Moonbeam does not invent v6.3.0 until Moonlight releases v6.3.0. There is no
+independent feature/maintenance numbering and no fork or Git suffix in versions.
 
-1. Fetch origin and upstream; start a new release branch from fresh origin/master.
-2. Record the previous upstream base from `upstream.json`. Rebase the fork's
-   focused runtime changes onto the selected upstream version in an isolated
-   branch/worktree. Preserve packaging and Moonbeam-specific integration commits.
-3. Review `git range-diff OLD_BASE..OLD_FORK NEW_BASE..REPLAYED_FORK`; resolve
-   upstream equivalents deliberately. Update `upstream.json` and release notes.
-4. Preserve published master ancestry before integrating with an ordinary push.
-   Review any history-preserving integration merge against both trees; never
-   force-push published branches or move tags. Merge newer master work if needed.
-5. Let CI rebuild all platforms. Compare the complete source/package manifests,
-   run required hardware/live-stream checks, and promote the exact candidate bytes.
+1. Fetch origin and upstream; start from fresh origin/master in an isolated
+   release branch/worktree. Select an actual published stable Moonlight tag.
+2. Rebase and replay the focused Moonbeam changes onto that upstream version.
+   Drop a patch only after upstream behavior is verified equivalent. Preserve
+   deliberate upstream backports and record their integration revision separately.
+3. Review `git range-diff OLD_BASE..OLD_FORK NEW_BASE..REPLAYED_FORK` and the full
+   tree difference. Resolve conflicts without discarding Moonbeam features.
+4. Preserve published master ancestry before ordinary integration; never
+   force-push or move published tags. Merge newer master work when needed.
+5. Set `app/moonbeam-version.txt` equal to upstream's `app/version.txt` and the
+   selected tag without its `v`. Update `upstream.json` with the release tag,
+   release commit and version; write matching release notes. Let CI verify the
+   actual upstream release, rebuild all platforms, and promote the exact bytes.
 
-Upstream's application protocol version remains in `app/version.txt`; Moonbeam's
-public release version lives in `app/moonbeam-version.txt`. They may differ while
-the fork carries features ahead of upstream. Published release metadata records
-the actual source commit, independent of the clean public version number.
+Keep following upstream this way until Moonlight provides equivalent behavior.
+The current v6.2.0 counterpart retains selected upstream fixes through4113dd26 in
+addition to Moonbeam's improvements; the released upstream base is de2467e4.
+Those additional fixes do not justify a different public version number.
+
+The earlier independent Moonbeam v6.3.0 bump was a versioning mistake. It is not
+an example to follow. Existing source history remains preserved.

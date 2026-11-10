@@ -1,6 +1,9 @@
 {
   "repository": "https://github.com/moonlight-stream/moonlight-qt.git",
-  "base_commit": "4113dd26be0907f2edf1805c7b9fd23766e17161",
+  "base_commit": "de2467e433821664cdd2224aad8c89a625be1ad9",
   "base_version": "6.2.0",
-  "policy": "Rebase and replay Moonbeam changes on upstream versions; retire patches only after upstream behavior is verified equivalent. Preserve published history and immutable tags."
+  "policy": "Mirror exact published Moonlight release tags and versions. Replay Moonbeam changes and retain selected upstream fixes; do not invent independent versions or suffixes. Preserve published history and immutable tags.",
+  "release_tag": "v6.2.0",
+  "release_commit": "de2467e433821664cdd2224aad8c89a625be1ad9",
+  "additional_upstream_fixes_through": "4113dd26be0907f2edf1805c7b9fd23766e17161"
 }

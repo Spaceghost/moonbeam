@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 import subprocess
 import tarfile
-from release_common import asset_names, native_version
+from release_common import asset_names, native_version, upstream_release
 
 root = Path(__file__).resolve().parents[1]
 dist = root / 'dist'
@@ -19,6 +19,7 @@ args = parser.parse_args()
 version = args.version
 base_version = (root / 'app/moonbeam-version.txt').read_text().strip()
 native_version(base_version)
+upstream = upstream_release(root)
 if version != base_version:
     parser.error('Artifact version must match the stable release version.')
 if (root / '.git').exists():
@@ -45,13 +46,14 @@ with tarfile.open(source, 'w:gz') as archive:
         if not path.is_file():
             parser.error(f'Missing tracked source file: {name}')
         archive.add(path, arcname=f'{prefix}/{name}', recursive=False)
-    snapshot = json.dumps({'commit': commit, 'files': tracked}, indent=2).encode() + b'\n'
+    snapshot = json.dumps({'commit': commit, 'upstream_release': upstream, 'files': tracked}, indent=2).encode() + b'\n'
     info = tarfile.TarInfo(f'{prefix}/SOURCE_MANIFEST.json')
     info.size = len(snapshot)
     archive.addfile(info, io.BytesIO(snapshot))
 files = [dist / name for name in asset_names(version, args.complete)]
 artifacts = {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in files}
-manifest = {'schema': 3, 'complete': args.complete, 'version': version,
+manifest = {'schema': 4, 'complete': args.complete, 'version': version,
+            'upstream_release': upstream,
             'base_version': base_version, 'dirty': dirty, 'commit': commit,
             'branch': os.environ.get('GITHUB_REF_NAME', branch),
             'run_id': os.environ.get('GITHUB_RUN_ID'), 'sha256': artifacts}

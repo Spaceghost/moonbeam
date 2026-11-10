@@ -14,9 +14,9 @@ project = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project / 'scripts'))
 from release_common import asset_names, native_version
 
-assert native_version('6.3.0') == '6.3.0'
+assert native_version('6.2.0') == '6.2.0'
 assert native_version('6.3.1') == '6.3.1'
-for invalid in ['6.2.0-moonbeam.5', '06.3.0', '6.3.0+g123', '6.3.0-rc1', '../invalid', '256.2.0', '6.3.65536']:
+for invalid in ['6.2.0-moonbeam.5', '06.2.0', '6.2.0+g123', '6.2.0-rc1', '../invalid', '256.2.0', '6.3.65536']:
     try:
         native_version(invalid)
     except ValueError:
@@ -42,17 +42,24 @@ with tempfile.TemporaryDirectory(prefix='moonbeam-artifacts-') as directory:
     (repo / 'scripts').mkdir()
     (repo / 'app').mkdir()
     (repo / 'docs/releases').mkdir(parents=True)
-    (repo / 'docs/releases/6.3.0.md').write_text('# Moonbeam 6.3.0\n\nTest release notes.\n')
+    (repo / 'docs/releases/6.2.0.md').write_text('# Moonbeam 6.2.0\n\nTest release notes.\n')
     (repo / 'dist').mkdir()
     (repo / '.gitignore').write_text('dist/\nprivate.conf\n__pycache__/\n')
-    (repo / 'app/moonbeam-version.txt').write_text('6.3.0\n')
+    (repo / 'app/version.txt').write_text('6.2.0\n')
+    git('add', 'app/version.txt', cwd=repo)
+    git('commit', '-m', 'upstream release fixture', cwd=repo)
+    upstream_commit = git('rev-parse', 'HEAD', cwd=repo)
+    (repo / 'upstream.json').write_text(json.dumps(dict(
+        repository='https://github.com/moonlight-stream/moonlight-qt.git',
+        release_tag='v6.2.0', base_version='6.2.0', release_commit=upstream_commit)))
+    (repo / 'app/moonbeam-version.txt').write_text('6.2.0\n')
     for name in ['release-artifacts.py', 'release_common.py']:
         shutil.copy2(project / 'scripts' / name, repo / 'scripts' / name)
     git('-c', 'protocol.file.allow=always', 'submodule', 'add', str(dependency), 'vendor/decoder', cwd=repo)
     git('add', '.', cwd=repo)
     git('commit', '-m', 'release fixture', cwd=repo)
     commit = git('rev-parse', 'HEAD', cwd=repo)
-    version = '6.3.0'
+    version = '6.2.0'
     names = asset_names(version, complete=True)
     for name in names:
         if not name.endswith('-source.tar.gz'):
@@ -62,7 +69,9 @@ with tempfile.TemporaryDirectory(prefix='moonbeam-artifacts-') as directory:
     result = subprocess.run(cmd, env=dict(env, GITHUB_RUN_ID='42'), capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     manifest = json.loads((repo / 'dist/candidate.json').read_text())
-    assert manifest['complete'] and not manifest['dirty']
+    assert manifest['schema'] == 4 and manifest['complete'] and not manifest['dirty']
+    assert manifest['upstream_release']['tag'] == 'v6.2.0'
+    assert manifest['upstream_release']['commit'] == upstream_commit
     assert manifest['commit'] == commit and manifest['branch'] == 'release/6.2'
     assert set(manifest['sha256']) == set(names)
     for name, digest in manifest['sha256'].items():
@@ -89,4 +98,6 @@ with tempfile.TemporaryDirectory(prefix='moonbeam-artifacts-') as directory:
     git('add', 'app/dirty-source.txt', cwd=repo)
     assert subprocess.run(cmd, env=env, capture_output=True).returncode == 0
     assert json.loads((repo / 'dist/candidate.json').read_text())['dirty']
-print('PASS: native versions, complete assets, checksums, submodule source, private-file exclusion, missing package, dirty source')
+    (repo / 'app/moonbeam-version.txt').write_text('6.3.0\n')
+    assert subprocess.run(cmd, env=env, capture_output=True).returncode != 0
+print('PASS: mirrored upstream versions, native versions, complete assets, checksums, submodule source, private-file exclusion, missing package, dirty source')

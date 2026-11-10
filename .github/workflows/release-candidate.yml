@@ -32,6 +32,12 @@ jobs:
       native_version: ${{ steps.version.outputs.native_version }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Verify matching published Moonlight release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/verify-upstream-release.py
       - name: Derive release versions
         id: version
         run: python3 scripts/release-version.py >> "$GITHUB_OUTPUT"

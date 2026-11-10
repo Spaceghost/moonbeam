@@ -10,7 +10,7 @@ import json
 import re
 from pathlib import Path
 import subprocess
-from release_common import asset_names, native_version
+from release_common import asset_names, native_version, validate_upstream_release
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--repo', default='Spaceghost/moonbeam')
@@ -36,8 +36,8 @@ if not run['head_branch'].startswith('release/') or run['head_sha'] != manifest[
     parser.error('Candidate source must match the successful release-branch build exactly.')
 if str(manifest['run_id']) != str(args.run_id):
     parser.error('Artifact run ID does not match the selected workflow run.')
-if manifest.get('schema') != 3 or manifest.get('complete') is not True:
-    parser.error('Promotion requires a complete multi-platform candidate (schema 3).')
+if manifest.get('schema') != 4 or manifest.get('complete') is not True:
+    parser.error('Promotion requires a complete upstream-mirrored candidate (schema 4).')
 if manifest.get('branch') != run['head_branch']:
     parser.error('Candidate branch does not match the selected workflow run.')
 expected_version = manifest['base_version']
@@ -45,6 +45,7 @@ if manifest['version'] != expected_version:
     parser.error('Candidate version must match the stable release version.')
 try:
     native_version(manifest['base_version'])
+    validate_upstream_release(manifest.get('upstream_release', {}), manifest['version'])
 except ValueError as error:
     parser.error(str(error))
 if set(manifest['sha256']) != set(asset_names(expected_version, complete=True)):
@@ -69,7 +70,8 @@ if '404' not in existing.stderr.decode():
     parser.error('Could not verify tag availability; refusing to tag.')
 notes = args.artifacts / 'publication-notes.md'
 notes.write_text(release_notes.decode() + '\n\n' +
-    f"Built and tested on `{run['head_branch']}` at `{manifest['commit']}`.\n\n"
+    f"Mirrors Moonlight [{manifest['upstream_release']['tag']}](https://github.com/moonlight-stream/moonlight-qt/releases/tag/{manifest['upstream_release']['tag']}) "
+    f"with Moonbeam's changes. Source: `{manifest['commit']}`.\n\n"
     f"Candidate build: {run['html_url']}\n\n"
     "Selected decoder/renderer recreation and live streaming were validated before promotion. "
     "These are the exact candidate binaries, with no rebuild during promotion. "

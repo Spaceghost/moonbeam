@@ -33,20 +33,22 @@ if '/git/ref/tags/' in sys.argv[-1]:
 raise SystemExit(2)
 ''')
     tool.chmod(0o755)
-    version = '6.3.0'
+    version = '6.2.0'
     names = asset_names(version, complete=True)
     for name in names:
         (root / name).write_bytes(b'tested candidate bytes')
-    notes = b'# Moonbeam 6.3.0\n\nTest release notes.\n'
-    manifest = {'schema':3, 'complete':True, 'version':version,
-        'base_version':'6.3.0', 'branch':'release/6.2',
+    notes = b'# Moonbeam 6.2.0\n\nTest release notes.\n'
+    manifest = {'schema':4, 'complete':True, 'version':version,
+        'base_version':'6.2.0', 'branch':'release/6.2',
         'dirty':False, 'commit':'a'*40, 'run_id':42,
         'release_notes_sha256':hashlib.sha256(notes).hexdigest(),
+        'upstream_release':dict(repository='https://github.com/moonlight-stream/moonlight-qt.git',
+            tag='v6.2.0', version='6.2.0', commit='b'*40),
         'sha256':{name:hashlib.sha256((root / name).read_bytes()).hexdigest() for name in names}}
 
     cases = ['success','failed','wrong-branch','pull-request','tag-exists','api-failure',
              'dirty','wrong-sha','wrong-run','tampered','missing-video','bad-version',
-             'missing-platform','wrong-manifest-branch','wrong-version','incomplete','old-schema','bad-checksums','path-traversal','tampered-notes']
+             'missing-platform','wrong-manifest-branch','wrong-version','incomplete','old-schema','bad-checksums','path-traversal','tampered-notes','missing-upstream','wrong-upstream-tag','wrong-upstream-version','wrong-upstream-repository','invalid-upstream-commit']
     for case in cases:
         data = json.loads(json.dumps(manifest))
         (root / 'release-notes.md').write_bytes(notes if case != 'tampered-notes' else b'wrong notes')
@@ -59,8 +61,13 @@ raise SystemExit(2)
         if case=='wrong-manifest-branch':data['branch']='release/other'
         if case=='wrong-version':data['version']='6.2.0-moonbeam.5+gbbbbbbbbbbbb'
         if case=='incomplete':data['complete']=False
-        if case=='old-schema':data['schema']=1
+        if case=='old-schema':data['schema']=3
         if case=='path-traversal':data['sha256']['../private.txt']='0'*64
+        if case=='missing-upstream':del data['upstream_release']
+        if case=='wrong-upstream-tag':data['upstream_release']['tag']='v6.3.0'
+        if case=='wrong-upstream-version':data['upstream_release']['version']='6.3.0'
+        if case=='wrong-upstream-repository':data['upstream_release']['repository']='https://example.invalid/not-upstream.git'
+        if case=='invalid-upstream-commit':data['upstream_release']['commit']='not-a-commit'
         checksum = ''.join(f'{digest}  {name}\n' for name,digest in data['sha256'].items())
         (root/'Moonbeam-SHA256SUMS').write_text(checksum if case!='bad-checksums' else 'wrong')
         (root/'candidate.json').write_text(json.dumps(data))

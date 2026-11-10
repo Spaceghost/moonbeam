@@ -7,13 +7,14 @@ Moonbeam is a Moonlight Qt fork that automatically resumes your running game aft
 
 ## Install
 
-[Release downloads](https://github.com/Spaceghost/moonbeam/releases/latest) currently
-contain Linux packages. The new release pipeline builds the same direct-download
-platforms as Moonlight: Windows universal installer and x64/ARM64 portable ZIPs,
-universal macOS DMG, Linux x86_64 AppImage, Steam Link ZIP, and source archive.
-Each complete release also includes the Linux portable installer bundle,
-SHA-256 checksums, and build provenance. See the [platform matrix and release
-process](docs/RELEASES.md). New platform packages remain candidates until validated.
+[Releases](https://github.com/Spaceghost/moonbeam/releases/latest) mirror
+Moonlight's exact version numbers and direct-download platforms, with Moonbeam's
+changes replayed on top. Moonlight v6.2.0 corresponds to Moonbeam v6.2.0.
+
+Downloads include a Windows universal installer and x64/ARM64 portable ZIPs,
+a universal macOS DMG, Linux x86_64 AppImage and installer bundle, Steam Link ZIP,
+complete source, SHA-256 checksums and build provenance. See the [platform matrix
+and release process](docs/RELEASES.md) and [upstream replay policy](docs/UPSTREAM.md).
 
 Download the Linux x86_64 portable bundle from [Releases](https://github.com/Spaceghost/moonbeam/releases/latest), extract it, and run:
 

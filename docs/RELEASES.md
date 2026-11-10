@@ -84,8 +84,7 @@ silently replace an installed bundle under the same version.
 
 Follow [upstream replay](UPSTREAM.md) when Moonlight releases another version.
 Published tags are immutable; additional builds remain CI artifacts until the
-next matching upstream release. The former independent v6.3.0 publication was a
-versioning mistake, not the beginning of a separate Moonbeam series.
+next matching upstream release.
 
 ## Validate and promote the exact bytes
 

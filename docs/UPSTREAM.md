@@ -5,8 +5,11 @@ with Moonbeam changes replayed on top. Moonlight v6.2.0 means Moonbeam v6.2.0;
 Moonbeam does not invent v6.3.0 until Moonlight releases v6.3.0. There is no
 independent feature/maintenance numbering and no fork or Git suffix in versions.
 
-1. Fetch origin and upstream; start from fresh origin/master in an isolated
-   release branch/worktree. Select an actual published stable Moonlight tag.
+1. Fetch fresh origin/master and upstream release tags into a separate namespace:
+   `git fetch upstream 'refs/tags/*:refs/moonlight/releases/*'`. Select an actual
+   published stable Moonlight tag, such as `refs/moonlight/releases/v6.2.0`.
+   Keep upstream tag refs separate from Moonbeam's identically named public tags.
+   Start an isolated release branch/worktree from fresh origin/master.
 2. Rebase and replay the focused Moonbeam changes onto that upstream version.
    Drop a patch only after upstream behavior is verified equivalent. Preserve
    deliberate upstream backports and record their integration revision separately.
@@ -23,6 +26,3 @@ Keep following upstream this way until Moonlight provides equivalent behavior.
 The current v6.2.0 counterpart retains selected upstream fixes through4113dd26 in
 addition to Moonbeam's improvements; the released upstream base is de2467e4.
 Those additional fixes do not justify a different public version number.
-
-The earlier independent Moonbeam v6.3.0 bump was a versioning mistake. It is not
-an example to follow. Existing source history remains preserved.

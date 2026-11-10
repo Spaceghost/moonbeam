@@ -1,5 +1,11 @@
 # Recovery, profiles, and NVIDIA validation — 2026-11-09
 
+The feature branch is rebased onto Moonlight `4113dd26` (2026-11-06). Upstream
+renderer callback synchronization, overlay teardown locking, CUDA format checks,
+and native dependency bundle v20 are retained. Published Moonbeam commits stay
+reachable through a history-preserving merge after the rebase; no published ref
+is rewritten. Linux keeps its pinned native SDL2/decoder SDK compatibility path.
+
 The feature code is built as `6.2.0-moonbeam.6`. These checks do not authorize
 publishing a new immutable release tag. Windows, macOS, and Steam Link still
 need their own physical streaming checks before a multi-platform promotion.

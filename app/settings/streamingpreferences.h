@@ -16,6 +16,7 @@ public:
     getDefaultBitrate(int width, int height, int fps, bool yuv444);
 
     Q_INVOKABLE void save();
+    Q_INVOKABLE static QVariantList availableRenderers();
 
     void reload();
 

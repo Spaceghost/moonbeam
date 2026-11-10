@@ -22,7 +22,7 @@ need their own physical streaming checks before a multi-platform promotion.
 - Existing installer/migration checks, nineteen promotion-policy scenarios,
   complete asset checks, native versioning, and recursive source archive checks.
 
-## Linux development A/B observations
+## Linux development A/B observations before the upstream refresh
 
 Alienware desktop with RTX 3070 and RTX 4060 GPUs, NVIDIA driver 615.78.08,
 GNOME Wayland, and the VA-API NVDEC direct backend. SDL reported its OpenGL

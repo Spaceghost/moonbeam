@@ -79,7 +79,10 @@ gh workflow run promote-release.yml --repo Spaceghost/moonbeam --ref master \
 
 ## Local platform builds
 
-Use a recursive clone. Linux: `bash scripts/build-moonbeam-container.sh`.
+Use a recursive clone. Linux: `bash scripts/build-moonbeam-container.sh` with
+Podman and slirp4netns installed. Each checkout/worktree gets its own builder;
+`MOONBEAM_BUILD_CONTAINER` and `MOONBEAM_BUILD_NETWORK` can override its name
+and network mode. Existing builder containers are preserved.
 Windows: run `setup-deps.ps1`, then `scripts\build-arch.bat Release` from the
 appropriate x64 and ARM64 Qt prompts, then `scripts\generate-bundle.bat Release`.
 macOS: `bash scripts/generate-dmg.sh Release` with Qt and `create-dmg` installed.

@@ -13,7 +13,7 @@ if [[ -f "$root/.git" ]]; then
 fi
 podman_cmd=(podman --storage-driver=vfs --root "$storage" --runroot "$runtime")
 if ! "${podman_cmd[@]}" container exists "$container"; then
-    "${podman_cmd[@]}" run -d --name "$container" --security-opt label=disable \
+    "${podman_cmd[@]}" run -d --name "$container" --network="${MOONBEAM_BUILD_NETWORK:-slirp4netns}" --security-opt label=disable \
         -v "$root:/src" -v "$root:$root" "${extra_mounts[@]}" -w "$root" \
         docker.io/library/ubuntu:22.04 sleep infinity
 fi

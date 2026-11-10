@@ -1,4 +1,5 @@
 #include "appmodel.h"
+#include "settings/gameprofiles.h"
 
 AppModel::AppModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -45,6 +46,18 @@ Session* AppModel::createSessionForApp(int appIndex)
     NvApp app = m_VisibleApps.at(appIndex);
 
     return new Session(m_Computer, app);
+}
+
+QVariantMap AppModel::getStreamProfile(int appIndex)
+{
+    if (appIndex < 0 || appIndex >= m_VisibleApps.size()) return {};
+    return GameProfiles::load(m_Computer->uuid, m_VisibleApps.at(appIndex).id);
+}
+
+bool AppModel::saveStreamProfile(int appIndex, const QVariantMap& values)
+{
+    return appIndex >= 0 && appIndex < m_VisibleApps.size() &&
+            GameProfiles::save(m_Computer->uuid, m_VisibleApps.at(appIndex).id, values);
 }
 
 int AppModel::getDirectLaunchAppIndex()

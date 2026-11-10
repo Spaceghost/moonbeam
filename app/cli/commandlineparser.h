@@ -60,7 +60,7 @@ public:
     StreamCommandLineParser();
     virtual ~StreamCommandLineParser();
 
-    void parse(const QStringList &args, StreamingPreferences *preferences);
+    void parse(const QStringList &args, StreamingPreferences *preferences, bool requireHost = true);
 
     QString getHost() const;
     QString getAppName() const;
@@ -73,6 +73,7 @@ private:
     QMap<QString, StreamingPreferences::VideoCodecConfig> m_VideoCodecMap;
     QMap<QString, StreamingPreferences::VideoDecoderSelection> m_VideoDecoderMap;
     QMap<QString, StreamingPreferences::CaptureSysKeysMode> m_CaptureSysKeysModeMap;
+    QMap<QString, StreamingPreferences::RendererSelection> m_RendererMap;
 };
 
 class ListCommandLineParser

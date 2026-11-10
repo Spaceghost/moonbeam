@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QRect>
+#include <QSet>
 #include <QQmlEngine>
 
 class StreamingPreferences : public QObject
@@ -17,6 +18,13 @@ public:
     Q_INVOKABLE void save();
 
     void reload();
+
+    // Freeze preferences for this session. CLI choices override saved game options.
+    static StreamingPreferences* forApp(const StreamingPreferences* base, const QString& hostId, int appId,
+                                        bool applyProfile = true);
+    QSet<QString> explicitOverrides;
+    bool useGameProfiles = true;
+    bool recomputeBitrateAfterProfile = false;
 
     enum AudioConfig
     {
@@ -44,14 +52,15 @@ public:
     };
     Q_ENUM(VideoDecoderSelection)
 
-    // Mac only (for now)
+    // Preserve stored enum values when adding renderers.
     enum RendererSelection
     {
         RS_PROBE_ONLY = -1, // Only valid for probing decoder properties
         RS_AUTO,
         RS_VULKAN,
         RS_METAL,
-        RS_AVSBDL
+        RS_AVSBDL,
+        RS_SDL // Linux: explicit presentation via SDL, including safe VAAPI readback
     };
     Q_ENUM(RendererSelection)
 

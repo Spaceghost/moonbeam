@@ -1,4 +1,6 @@
 #include "streamingpreferences.h"
+#include "gameprofiles.h"
+#include <QMetaProperty>
 #include "utils.h"
 
 #include <QSettings>
@@ -100,6 +102,30 @@ StreamingPreferences* StreamingPreferences::get(QQmlEngine *qmlEngine)
 
         return s_GlobalPrefs;
     }
+}
+
+StreamingPreferences* StreamingPreferences::forApp(const StreamingPreferences* base, const QString& hostId,
+                                                  int appId, bool applyProfile)
+{
+    auto snapshot = new StreamingPreferences(nullptr);
+    for (int i = 0; i < base->metaObject()->propertyCount(); ++i) {
+        const auto property = base->metaObject()->property(i);
+        if (property.isWritable()) property.write(snapshot, property.read(base));
+    }
+    snapshot->packetSize = base->packetSize;
+    snapshot->explicitOverrides = base->explicitOverrides;
+    snapshot->useGameProfiles = base->useGameProfiles;
+    snapshot->recomputeBitrateAfterProfile = base->recomputeBitrateAfterProfile;
+    if (applyProfile && base->useGameProfiles) {
+        const auto profile = GameProfiles::load(hostId, appId);
+        for (auto it = profile.cbegin(); it != profile.cend(); ++it) {
+            if (!snapshot->explicitOverrides.contains(it.key()))
+                snapshot->setProperty(it.key().toUtf8().constData(), it.value());
+        }
+    }
+    if (applyProfile && base->recomputeBitrateAfterProfile)
+        snapshot->bitrateKbps = getDefaultBitrate(snapshot->width, snapshot->height, snapshot->fps, snapshot->enableYUV444);
+    return snapshot;
 }
 
 void StreamingPreferences::reload()

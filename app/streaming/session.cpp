@@ -400,11 +400,27 @@ bool Session::runVideoSelfTest()
     }
     SDL_Window* window = StreamUtils::createTestWindow();
     bool success = window != nullptr;
+    const auto prefs = StreamingPreferences::get();
+    int format;
+    if (prefs->videoCodecConfig == StreamingPreferences::VCC_FORCE_AV1) {
+        format = prefs->enableHdr ? (prefs->enableYUV444 ? VIDEO_FORMAT_AV1_HIGH10_444 : VIDEO_FORMAT_AV1_MAIN10) :
+                                   (prefs->enableYUV444 ? VIDEO_FORMAT_AV1_HIGH8_444 : VIDEO_FORMAT_AV1_MAIN8);
+    } else if (prefs->videoCodecConfig == StreamingPreferences::VCC_FORCE_HEVC ||
+               (prefs->videoCodecConfig == StreamingPreferences::VCC_AUTO && prefs->enableHdr)) {
+        format = prefs->enableHdr ? (prefs->enableYUV444 ? VIDEO_FORMAT_H265_REXT10_444 : VIDEO_FORMAT_H265_MAIN10) :
+                                   (prefs->enableYUV444 ? VIDEO_FORMAT_H265_REXT8_444 : VIDEO_FORMAT_H265);
+    } else {
+        format = prefs->enableYUV444 ? VIDEO_FORMAT_H264_HIGH8_444 : VIDEO_FORMAT_H264;
+        if (prefs->enableHdr) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "H.264 self-test does not support HDR; select HEVC or AV1.");
+            success = false;
+        }
+    }
     for (int pass = 0; success && pass < 3; ++pass) {
         IVideoDecoder* decoder = nullptr;
-        success = chooseDecoder(StreamingPreferences::VDS_AUTO,
-                                StreamingPreferences::RS_AUTO, window,
-                                VIDEO_FORMAT_H264, 1920, 1080, 60,
+        success = chooseDecoder(prefs->videoDecoderSelection,
+                                prefs->rendererSelection, window,
+                                format, prefs->width, prefs->height, prefs->fps,
                                 false, false, true, decoder);
         success = success && decoder;
         const char* decoderType = decoder == nullptr ? "unavailable" :
@@ -528,7 +544,8 @@ Session::getDecoderAvailability(SDL_Window* window,
     IVideoDecoder* decoder;
 
     if (!chooseDecoder(vds,
-                       StreamingPreferences::RS_PROBE_ONLY,
+                       m_Preferences->rendererSelection == StreamingPreferences::RS_AUTO ?
+                           StreamingPreferences::RS_PROBE_ONLY : m_Preferences->rendererSelection,
                        window, videoFormat, width, height, frameRate,
                        false, false, true, decoder)) {
         return DecoderAvailability::None;
@@ -596,8 +613,9 @@ bool Session::populateDecoderProperties(SDL_Window* window)
     return true;
 }
 
-Session::Session(NvComputer* computer, NvApp& app, StreamingPreferences *preferences)
-    : m_Preferences(preferences ? preferences : StreamingPreferences::get()),
+Session::Session(NvComputer* computer, NvApp& app, StreamingPreferences *preferences, bool applyGameProfile)
+    : m_Preferences(StreamingPreferences::forApp(preferences ? preferences : StreamingPreferences::get(),
+                                               computer->uuid, app.id, applyGameProfile)),
       m_IsFullScreen(m_Preferences->windowMode != StreamingPreferences::WM_WINDOWED || !WMUtils::isRunningDesktopEnvironment()),
       m_Computer(computer),
       m_App(app),
@@ -618,6 +636,7 @@ Session::Session(NvComputer* computer, NvApp& app, StreamingPreferences *prefere
       m_AudioSampleCount(0),
       m_DropAudioEndTime(0)
 {
+    m_Preferences->setParent(this);
 }
 
 Session::~Session()
@@ -632,7 +651,7 @@ Session* Session::createReconnectSession()
 {
     // Called only after readyForDeletion: LiStopConnection() and the SDL
     // teardown must finish before another session is initialized.
-    auto next = new Session(m_Computer, m_App, m_Preferences);
+    auto next = new Session(m_Computer, m_App, m_Preferences, false);
     next->m_IsReconnect = true;
     // initialize() can fail before startConnectionAsync() sets this flag.
     // Keep the retry path available even when a transient local setup fails.
@@ -643,6 +662,13 @@ Session* Session::createReconnectSession()
 bool Session::initialize(QQuickWindow* qtWindow)
 {
     m_QtWindow = qtWindow;
+#ifdef Q_OS_LINUX
+    if (m_Preferences->rendererSelection == StreamingPreferences::RS_SDL && m_Preferences->enableHdr) {
+        m_ReconnectAllowed = false;
+        emit displayLaunchError(tr("SDL presentation does not support HDR. Disable HDR for this game or choose another renderer."));
+        return false;
+    }
+#endif
 
 #ifdef Q_OS_DARWIN
     if (qEnvironmentVariableIntValue("I_WANT_BUGGY_FULLSCREEN") == 0) {
@@ -1314,9 +1340,8 @@ private:
     void run() override
     {
         // Only quit the running app if our session terminated gracefully
-        bool shouldQuit =
-                !m_Session->m_UnexpectedTermination &&
-                m_Session->m_Preferences->quitAppAfter;
+        bool shouldQuit = ReconnectPolicy::shouldQuitHost(m_Session->m_UnexpectedTermination,
+                m_Session->m_Preferences->quitAppAfter, m_Session->m_ReconnectCancelled);
 
         // Notify the UI
         if (shouldQuit) {
@@ -1678,6 +1703,7 @@ bool Session::startConnectionAsync()
                 return false;
             }
         }
+        if (m_ReconnectCancelled) return false;
         http.startApp(currentGame != 0 ? "resume" : "launch",
                       m_Computer->isNvidiaServerSoftware,
                       m_App.id, &m_StreamConfig,
@@ -1697,6 +1723,8 @@ bool Session::startConnectionAsync()
         emit displayLaunchError(e.toQString());
         return false;
     }
+
+    if (m_ReconnectCancelled) return false;
 
     QByteArray hostnameStr = m_Computer->activeAddress.address().toUtf8();
     QByteArray siAppVersion = m_Computer->appVersion.toUtf8();

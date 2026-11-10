@@ -39,3 +39,12 @@ jobs:
           qmake6 ../../tests/reconnect/reconnect.pro
           make -j2
           STREAM_SEGUE_SOURCE="$GITHUB_WORKSPACE/app/gui/StreamSegue.qml" ./reconnect-test
+      - name: Per-game profile tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          mkdir -p build/profile-tests
+          cd build/profile-tests
+          qmake6 ../../tests/profiles/profiles.pro
+          make -j2
+          GAME_PROFILE_SOURCE="$GITHUB_WORKSPACE/app/gui/profile-test.qml" ./profiles-test

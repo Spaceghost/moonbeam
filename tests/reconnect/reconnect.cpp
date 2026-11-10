@@ -75,12 +75,60 @@ private slots:
         QVERIFY(!AudioQueueBudget::fits(0, 1, 0));
         QVERIFY(!AudioQueueBudget::fits(0, stereo, stereo));
     }
+    void hostQuitPolicy() {
+        QVERIFY(ReconnectPolicy::shouldQuitHost(false, true, false));
+        QVERIFY(!ReconnectPolicy::shouldQuitHost(false, true, true));
+        QVERIFY(!ReconnectPolicy::shouldQuitHost(true, true, false));
+        QVERIFY(!ReconnectPolicy::shouldQuitHost(false, false, false));
+    }
     void terminationPolicy() {
         for (int code : {ML_ERROR_GRACEFUL_TERMINATION, ML_ERROR_PROTECTED_CONTENT,
                          ML_ERROR_FRAME_CONVERSION, ML_ERROR_UNEXPECTED_EARLY_TERMINATION})
             QVERIFY(!ReconnectPolicy::canRetryTermination(code));
         for (int code : {-1, 11, ML_ERROR_NO_VIDEO_TRAFFIC, ML_ERROR_NO_VIDEO_FRAME})
             QVERIFY(ReconnectPolicy::canRetryTermination(code));
+    }
+    void repeatedRecovery() {
+        QQmlEngine engine;
+        QQuickWindow window;
+        UiStub stack, dialog, toolbar;
+        engine.rootContext()->setContextProperty("window", &window);
+        engine.rootContext()->setContextProperty("stackView", &stack);
+        engine.rootContext()->setContextProperty("streamSegueErrorDialog", &dialog);
+        engine.rootContext()->setContextProperty("toolBar", &toolbar);
+        QQmlComponent component(&engine, QUrl::fromLocalFile(source));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        QScopedPointer<QObject> item(component.create());
+        QVERIFY(item);
+        QVector<FakeSession*> sessions;
+        auto current = new FakeSession;
+        sessions.append(current);
+        item->setProperty("session", QVariant::fromValue(current));
+        item->setProperty("appName", "Repeated recovery");
+        QVERIFY(QMetaObject::invokeMethod(item.data(), "hookSession"));
+        for (int cycle = 0; cycle < 20; ++cycle) {
+            emit current->connectionStarted();
+            emit current->sessionFinished(0);
+            emit current->sessionFinished(0); // Duplicate termination must not increment the counter twice.
+            QCOMPARE(item->property("retryAttempts").toInt(), cycle + 1);
+            emit current->readyForDeletion();
+            QCOMPARE(current->clones, 1);
+            emit current->readyForDeletion(); // Stale callbacks must be disconnected.
+            QCOMPARE(current->clones, 1);
+            current = current->next;
+            sessions.append(current);
+            item->findChild<QObject*>("reconnectTimer")->setProperty("interval", 1);
+            QTRY_COMPARE(current->starts, 1);
+            QCOMPARE(stack.pops, 0);
+        }
+        current->allowed = false;
+        emit current->sessionFinished(0);
+        emit current->readyForDeletion();
+        QCOMPARE(stack.pops, 1);
+        QVERIFY(QMetaObject::invokeMethod(item.data(), "finishSession", Q_ARG(QVariant, 0)));
+        QCOMPARE(stack.pops, 1); // A late callback cannot pop the next page.
+        item.reset();
+        qDeleteAll(sessions);
     }
     void lifecycle_data() {
         QTest::addColumn<QString>("scenario");

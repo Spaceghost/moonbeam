@@ -28,6 +28,8 @@ public:
     Q_INVOKABLE void initialize(ComputerManager* computerManager, int computerIndex, bool showHiddenGames);
 
     Q_INVOKABLE Session* createSessionForApp(int appIndex);
+    Q_INVOKABLE QVariantMap getStreamProfile(int appIndex);
+    Q_INVOKABLE bool saveStreamProfile(int appIndex, const QVariantMap& values);
 
     Q_INVOKABLE int getDirectLaunchAppIndex();
 

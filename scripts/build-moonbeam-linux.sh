@@ -23,3 +23,10 @@ cd build/reconnect-tests
 qmake6 ../../tests/reconnect/reconnect.pro
 make -j4
 QT_QPA_PLATFORM=offscreen STREAM_SEGUE_SOURCE="$root/app/gui/StreamSegue.qml" ./reconnect-test
+
+cd "$root"
+mkdir -p build/profile-tests
+cd build/profile-tests
+qmake6 ../../tests/profiles/profiles.pro
+make -j4
+QT_QPA_PLATFORM=offscreen GAME_PROFILE_SOURCE="$root/app/gui/profile-test.qml" ./profiles-test

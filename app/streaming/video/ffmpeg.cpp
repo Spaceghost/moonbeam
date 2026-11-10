@@ -343,6 +343,30 @@ bool FFmpegVideoDecoder::initializeRendererInternal(IFFmpegRenderer* renderer, P
 
 bool FFmpegVideoDecoder::createFrontendRenderer(PDECODER_PARAMETERS params, bool useAlternateFrontend)
 {
+#ifdef Q_OS_LINUX
+    // An explicit renderer choice must not silently fall through to EGL/direct presentation.
+    if (params->renderer == StreamingPreferences::RS_SDL) {
+        if (m_BackendRenderer->getRendererType() == IFFmpegRenderer::RendererType::SDL) {
+            m_FrontendRenderer = m_BackendRenderer;
+            return true;
+        }
+        if (useAlternateFrontend) return false;
+        m_FrontendRenderer = new SdlRenderer();
+        return initializeRendererInternal(m_FrontendRenderer, params);
+    }
+#ifdef HAVE_LIBPLACEBO_VULKAN
+    if (params->renderer == StreamingPreferences::RS_VULKAN) {
+        if (m_BackendRenderer->getRendererType() == IFFmpegRenderer::RendererType::Vulkan) {
+            m_FrontendRenderer = m_BackendRenderer;
+            return true;
+        }
+        if (useAlternateFrontend) return false;
+        m_FrontendRenderer = new PlVkRenderer(AV_HWDEVICE_TYPE_NONE, m_BackendRenderer);
+        return initializeRendererInternal(m_FrontendRenderer, params);
+    }
+#endif
+#endif
+
     bool glIsSlow;
     bool vulkanIsSlow;
 
@@ -989,6 +1013,14 @@ IFFmpegRenderer* FFmpegVideoDecoder::createHwAccelRenderer(const AVCodecHWConfig
 {
     Q_UNUSED(params);
 
+#ifdef Q_OS_LINUX
+    if (params->renderer == StreamingPreferences::RS_SDL &&
+            hwDecodeCfg->device_type != AV_HWDEVICE_TYPE_VAAPI &&
+            hwDecodeCfg->device_type != AV_HWDEVICE_TYPE_VDPAU) {
+        return nullptr;
+    }
+#endif
+
     if (!(hwDecodeCfg->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)) {
         return nullptr;
     }
@@ -1350,6 +1382,27 @@ bool FFmpegVideoDecoder::tryInitializeRendererForUnknownDecoder(const AVCodec* d
             }
         }
     }
+
+#ifdef Q_OS_LINUX
+    if (params->renderer == StreamingPreferences::RS_SDL) {
+        if (!decoder_pix_fmts)
+            return tryInitializeRenderer(decoder, AV_PIX_FMT_NONE, params, nullptr, nullptr,
+                                         []() -> IFFmpegRenderer* { return new SdlRenderer(); });
+        for (int i = 0; decoder_pix_fmts[i] != AV_PIX_FMT_NONE; ++i) { TRY_PREFERRED_PIXEL_FORMAT(SdlRenderer); }
+        for (int i = 0; decoder_pix_fmts[i] != AV_PIX_FMT_NONE; ++i) { TRY_SUPPORTED_NON_PREFERRED_PIXEL_FORMAT(SdlRenderer); }
+        return false;
+    }
+#ifdef HAVE_LIBPLACEBO_VULKAN
+    if (params->renderer == StreamingPreferences::RS_VULKAN) {
+        if (!decoder_pix_fmts)
+            return tryInitializeRenderer(decoder, AV_PIX_FMT_NONE, params, nullptr, nullptr,
+                                         []() -> IFFmpegRenderer* { return new PlVkRenderer(); });
+        for (int i = 0; decoder_pix_fmts[i] != AV_PIX_FMT_NONE; ++i) { TRY_PREFERRED_PIXEL_FORMAT(PlVkRenderer); }
+        for (int i = 0; decoder_pix_fmts[i] != AV_PIX_FMT_NONE; ++i) { TRY_SUPPORTED_NON_PREFERRED_PIXEL_FORMAT(PlVkRenderer); }
+        return false;
+    }
+#endif
+#endif
 
     if (decoder_pix_fmts == NULL) {
         // Supported output pixel formats are unknown. We'll just try DRM/SDL and hope it can cope.

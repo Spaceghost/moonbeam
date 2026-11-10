@@ -99,7 +99,7 @@ class Session : public QObject
     friend class AsyncConnectionStartThread;
 
 public:
-    explicit Session(NvComputer* computer, NvApp& app, StreamingPreferences *preferences = nullptr);
+    explicit Session(NvComputer* computer, NvApp& app, StreamingPreferences *preferences = nullptr, bool applyGameProfile = true);
     virtual ~Session();
 
     Q_INVOKABLE bool initialize(QQuickWindow* qtWindow);
@@ -183,7 +183,6 @@ private:
         Hardware
     };
 
-    static
     DecoderAvailability getDecoderAvailability(SDL_Window* window,
                                                StreamingPreferences::VideoDecoderSelection vds,
                                                int videoFormat, int width, int height, int frameRate);

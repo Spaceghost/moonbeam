@@ -26,6 +26,14 @@ Launch **Moonbeam** from your applications menu, or run `~/.local/bin/moonbeam`.
 
 Defaults are **1920×1080, 60 FPS, 30 Mbps**, frame pacing, and automatic reconnect. Adjust them in Settings to suit your network and hardware. The host/game must also render at 1080p for a true 1080p image.
 
+## Steam Controller keyboard
+
+Steam Controller 2026 users can enable the [radial trackpad keyboard](docs/STEAM-CONTROLLER.md)
+while keeping normal PlayStation-style sticks, buttons, triggers and gyro.
+The left pad selects a group and lifting the right thumb types one key.
+This requires a client build containing the Triton driver; physical controller
+validation and native Android/iOS integration are still outstanding.
+
 ## Per-game profiles
 
 Right-click a game and choose **Stream settings…** to save its resolution, FPS,

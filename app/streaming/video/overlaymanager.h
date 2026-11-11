@@ -11,6 +11,7 @@ namespace Overlay {
 enum OverlayType {
     OverlayDebug,
     OverlayStatusUpdate,
+    OverlayRadialKeyboard,
     OverlayMax
 };
 
@@ -39,6 +40,7 @@ public:
     SDL_Surface* getUpdatedOverlaySurface(OverlayType type);
 
     void setOverlayRenderer(IOverlayRenderer* renderer);
+    void setRadialSelection(int group, int letter) { m_RadialGroup = group; m_RadialLetter = letter; }
 
 private:
     void notifyOverlayUpdated(OverlayType type);
@@ -56,6 +58,7 @@ private:
     IOverlayRenderer* m_Renderer;
     QByteArray m_FontData;
     QReadWriteLock m_OverlayRendererLock;
+    int m_RadialGroup = 0, m_RadialLetter = -1;
 };
 
 }

@@ -193,6 +193,7 @@ SOURCES += \
     settings/streamingpreferences.cpp \
     streaming/input/abstouch.cpp \
     streaming/input/gamepad.cpp \
+    streaming/input/radialkeyboard.cpp \
     streaming/input/input.cpp \
     streaming/input/keyboard.cpp \
     streaming/input/mouse.cpp \
@@ -213,6 +214,8 @@ SOURCES += \
     wm.cpp
 
 HEADERS += \
+    streaming/input/radialkeyboard.h \
+    streaming/input/radialkeyboardimage.h \
     SDL_compat.h \
     backend/nvaddress.h \
     backend/nvapp.h \

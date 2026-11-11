@@ -41,6 +41,7 @@
 #define SER_UIDISPLAYMODE "uidisplaymode"
 #define SER_RICHPRESENCE "richpresence"
 #define SER_GAMEPADMOUSE "gamepadmouse"
+#define SER_STEAMPADKEYBOARD "steampadkeyboard"
 #define SER_DEFAULTVER "defaultver"
 #define SER_PACKETSIZE "packetsize"
 #define SER_DETECTNETBLOCKING "detectnetblocking"
@@ -174,6 +175,7 @@ void StreamingPreferences::reload()
     configurationWarnings = settings.value(SER_CONFWARNINGS, true).toBool();
     richPresence = settings.value(SER_RICHPRESENCE, true).toBool();
     gamepadMouse = settings.value(SER_GAMEPADMOUSE, true).toBool();
+    steamPadKeyboard = settings.value(SER_STEAMPADKEYBOARD, true).toBool();
     detectNetworkBlocking = settings.value(SER_DETECTNETBLOCKING, true).toBool();
     showPerformanceOverlay = settings.value(SER_SHOWPERFOVERLAY, false).toBool();
     packetSize = settings.value(SER_PACKETSIZE, 0).toInt();
@@ -375,6 +377,7 @@ void StreamingPreferences::save()
     settings.setValue(SER_CONFWARNINGS, configurationWarnings);
     settings.setValue(SER_RICHPRESENCE, richPresence);
     settings.setValue(SER_GAMEPADMOUSE, gamepadMouse);
+    settings.setValue(SER_STEAMPADKEYBOARD, steamPadKeyboard);
     settings.setValue(SER_PACKETSIZE, packetSize);
     settings.setValue(SER_DETECTNETBLOCKING, detectNetworkBlocking);
     settings.setValue(SER_SHOWPERFOVERLAY, showPerformanceOverlay);

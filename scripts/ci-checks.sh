@@ -13,6 +13,9 @@ python3 tests/test_ci_runner.py
 python3 tests/test_installer.py
 python3 tests/test_release_promotion.py
 python3 tests/test_release_artifacts.py
+mkdir -p build
+c++ -std=c++11 -Wall -Wextra -Werror tests/radialkeyboard.cpp -o build/radialkeyboard-test
+build/radialkeyboard-test
 cd "${GITHUB_WORKSPACE:-$(pwd)}"
 mkdir -p build/reconnect-tests
 cd build/reconnect-tests

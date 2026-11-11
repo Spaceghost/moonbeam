@@ -1,5 +1,6 @@
 #include "overlaymanager.h"
 #include "path.h"
+#include "streaming/input/radialkeyboardimage.h"
 
 using namespace Overlay;
 
@@ -14,6 +15,9 @@ OverlayManager::OverlayManager() :
 
     m_Overlays[OverlayType::OverlayStatusUpdate].color = {0xCC, 0x00, 0x00, 0xFF};
     m_Overlays[OverlayType::OverlayStatusUpdate].fontSize = 36;
+
+    m_Overlays[OverlayType::OverlayRadialKeyboard].color = {0xC0, 0xEE, 0xFF, 0xFF};
+    m_Overlays[OverlayType::OverlayRadialKeyboard].fontSize = 18;
 
     // While TTF will usually not be initialized here, it is valid for that not to
     // be the case, since Session destruction is deferred and could overlap with
@@ -122,6 +126,23 @@ void OverlayManager::notifyOverlayUpdated(OverlayType type)
     QReadLocker lock(&m_OverlayRendererLock);
 
     if (m_Renderer == nullptr) {
+        return;
+    }
+
+    if (type == OverlayRadialKeyboard) {
+        SDL_Surface* surface = nullptr;
+        if (m_Overlays[type].enabled) {
+            const QImage image = radialKeyboardImage(m_RadialGroup, m_RadialLetter);
+            surface = SDL_CreateRGBSurfaceWithFormat(0, image.width(), image.height(), 32, SDL_PIXELFORMAT_ARGB8888);
+            if (surface) {
+                SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_BLEND);
+                for (int y = 0; y < image.height(); ++y)
+                    memcpy(static_cast<char*>(surface->pixels) + y * surface->pitch, image.constScanLine(y), image.width() * 4);
+            }
+        }
+        auto old = static_cast<SDL_Surface*>(SDL_AtomicSetPtr(reinterpret_cast<void**>(&m_Overlays[type].surface), surface));
+        m_Renderer->notifyOverlayUpdated(type);
+        SDL_FreeSurface(old);
         return;
     }
 

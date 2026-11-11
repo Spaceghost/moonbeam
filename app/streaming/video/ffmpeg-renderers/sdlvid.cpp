@@ -241,6 +241,12 @@ void SdlRenderer::renderOverlay(Overlay::OverlayType type)
                 m_OverlayRects[type].x = 0;
                 m_OverlayRects[type].y = viewportRect.h - newSurface->h;
             }
+            else if (type == Overlay::OverlayRadialKeyboard) {
+                SDL_Rect viewportRect;
+                SDL_RenderGetViewport(m_Renderer, &viewportRect);
+                m_OverlayRects[type].x = SDL_max(0, viewportRect.w - newSurface->w);
+                m_OverlayRects[type].y = viewportRect.h - newSurface->h;
+            }
             else if (type == Overlay::OverlayDebug) {
                 // Top left
                 m_OverlayRects[type].x = 0;

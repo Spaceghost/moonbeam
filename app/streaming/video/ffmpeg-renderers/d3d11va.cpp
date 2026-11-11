@@ -1187,6 +1187,10 @@ bool D3D11VARenderer::createOverlayVertexBuffer(Overlay::OverlayType type, int w
         renderRect.x = 0;
         renderRect.y = 0;
     }
+    else if (type == Overlay::OverlayRadialKeyboard) {
+        renderRect.x = SDL_max(0, m_DisplayWidth - width);
+        renderRect.y = 0;
+    }
     else if (type == Overlay::OverlayDebug) {
         // Top left
         renderRect.x = 0;

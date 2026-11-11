@@ -1080,6 +1080,10 @@ void PlVkRenderer::renderFrame(AVFrame *frame)
                 overlayParts[i].dst.x0 = 0;
                 overlayParts[i].dst.y0 = SDL_max(0, targetFrame.crop.y1 - overlayParts[i].src.y1);
             }
+            else if (i == Overlay::OverlayRadialKeyboard) {
+                overlayParts[i].dst.x0 = SDL_max(0, targetFrame.crop.x1 - overlayParts[i].src.x1);
+                overlayParts[i].dst.y0 = SDL_max(0, targetFrame.crop.y1 - overlayParts[i].src.y1);
+            }
             else if (i == Overlay::OverlayDebug) {
                 // Top left
                 overlayParts[i].dst.x0 = 0;

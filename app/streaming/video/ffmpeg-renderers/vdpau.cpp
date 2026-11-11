@@ -442,6 +442,10 @@ void VDPAURenderer::notifyOverlayUpdated(Overlay::OverlayType type)
             overlayRect.x0 = 0;
             overlayRect.y0 = m_DisplayHeight - newSurface->h;
         }
+        else if (type == Overlay::OverlayRadialKeyboard) {
+            overlayRect.x0 = SDL_max(0, (int)m_DisplayWidth - newSurface->w);
+            overlayRect.y0 = SDL_max(0, (int)m_DisplayHeight - newSurface->h);
+        }
         else if (type == Overlay::OverlayDebug) {
             // Top left
             overlayRect.x0 = 0;

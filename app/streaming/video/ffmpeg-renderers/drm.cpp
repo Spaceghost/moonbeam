@@ -1568,6 +1568,10 @@ void DrmRenderer::notifyOverlayUpdated(Overlay::OverlayType type)
             overlayRect.x = 0;
             overlayRect.y = m_OutputRect.h - newSurface->h;
         }
+        else if (type == Overlay::OverlayRadialKeyboard) {
+            overlayRect.x = SDL_max(0, m_OutputRect.w - newSurface->w);
+            overlayRect.y = m_OutputRect.h - newSurface->h;
+        }
         else if (type == Overlay::OverlayDebug) {
             // Top left
             overlayRect.x = 0;

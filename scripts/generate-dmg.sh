@@ -33,6 +33,7 @@ fi
 
 echo Updating dependencies
 python3 $SOURCE_ROOT/setup-deps.py
+python3 "$SOURCE_ROOT/scripts/build-sdl2-triton.py" --arch universal || fail "SDL2 Triton build failed!"
 
 echo Cleaning output directories
 rm -rf $BUILD_FOLDER

@@ -20,6 +20,15 @@ def write_if_changed(path, text):
     if not path.exists() or path.read_text() != text:
         path.write_text(text)
 
+def copy_if_changed(source, destination):
+    """Pinned dependency files retain mtimes; avoid rewriting them on rebuilds."""
+    source, destination = Path(source), Path(destination)
+    if destination.is_file():
+        before, after = source.stat(), destination.stat()
+        if before.st_size == after.st_size and before.st_mtime_ns == after.st_mtime_ns:
+            return str(destination)
+    return shutil.copy2(source, destination)
+
 def download(name, url, digest):
     dest = deps / name
     if not dest.is_file():
@@ -63,10 +72,10 @@ include, lib = sdk / 'include', sdk / 'lib'
 include.mkdir(parents=True, exist_ok=True)
 (lib / 'pkgconfig').mkdir(parents=True, exist_ok=True)
 for name in ['libavcodec', 'libavutil', 'libavformat', 'libswscale']:
-    shutil.copytree(deps / 'FFmpeg-n9.0.2' / name, include / name, dirs_exist_ok=True)
+    shutil.copytree(deps / 'FFmpeg-n9.0.2' / name, include / name, dirs_exist_ok=True, copy_function=copy_if_changed)
 shutil.copytree(deps / 'libplacebo-92b5ac6db79f4d680eb656692f7bf51e9606f42a/src/include/libplacebo',
-                include / 'libplacebo', dirs_exist_ok=True)
-shutil.copytree(deps / 'Vulkan-Headers-1.4.313/include', include, dirs_exist_ok=True)
+                include / 'libplacebo', dirs_exist_ok=True, copy_function=copy_if_changed)
+shutil.copytree(deps / 'Vulkan-Headers-1.4.313/include', include, dirs_exist_ok=True, copy_function=copy_if_changed)
 write_if_changed(include / 'libavutil/avconfig.h',
     '#ifndef AVUTIL_AVCONFIG_H\n#define AVUTIL_AVCONFIG_H\n'
     '#define AV_HAVE_BIGENDIAN 0\n#define AV_HAVE_FAST_UNALIGNED 1\n#endif\n')
@@ -83,12 +92,12 @@ upstream_lib = runtime_dir / 'squashfs-root/usr/lib'
 for name in ['libavcodec.so.63', 'libavutil.so.61', 'libswscale.so.10',
              'libplacebo.so.374', 'libshaderc_shared.so.1', 'libvulkan.so.1',
              'libSDL2_ttf-2.0.so.0', 'liblcms2.so.2']:
-    shutil.copy2(upstream_lib / name, lib / name)
+    copy_if_changed(upstream_lib / name, lib / name)
 fallback = runtime_dir / 'squashfs-root/opt/libva-fallback'
 if not (sdk / 'opt/libva-fallback/libva-probe').exists():
     shutil.copytree(fallback, sdk / 'opt/libva-fallback', dirs_exist_ok=True, symlinks=True)
 for path in fallback.glob('libva*.so*'):
-    shutil.copy2(path, lib / path.name)
+    copy_if_changed(path, lib / path.name)
 for name, (abi, version, linker_name) in versions.items():
     symlink = lib / (name + '.so')
     if not symlink.exists(): symlink.symlink_to(f'{name}.so.{abi}')
@@ -98,7 +107,7 @@ for name, (abi, version, linker_name) in versions.items():
         f'Libs: -L${{libdir}} -l{linker_name}\nCflags: -I${{includedir}}\n')
 for name, dest in [('libSDL2.so', 'libSDL2-2.0.so.0'), ('libSDL2_ttf.so', 'libSDL2_ttf-2.0.so.0')]:
     link = lib / name
-    if not link.exists(): link.symlink_to(dest)
+    if not link.exists() and not link.is_symlink(): link.symlink_to(dest)
 sdl_archive = download('SDL2-2.32.10.tar.gz',
     'https://github.com/libsdl-org/SDL/releases/download/release-2.32.10/SDL2-2.32.10.tar.gz',
     '5f5993c530f084535c65a6879e9b26ad441169b3e25d789d83287040a9ca5165')
@@ -106,7 +115,12 @@ sdl_source = deps / 'SDL2-2.32.10'
 if not sdl_source.exists():
     with tarfile.open(sdl_archive) as archive:
         archive.extractall(deps)
-stamp = sdk / '.native-sdl2-2.32.10-wayland-pulse'
+subprocess.run(['python3', str(root / 'scripts/patch-sdl2-triton.py'), str(sdl_source)], check=True)
+patch_hash = hashlib.sha256()
+for patch in sorted((root / 'third_party/sdl2-triton').rglob('*')):
+    if patch.is_file(): patch_hash.update(patch.read_bytes())
+patch_hash.update((root / 'scripts/patch-sdl2-triton.py').read_bytes())
+stamp = sdk / ('.native-sdl2-2.32.10-triton-' + patch_hash.hexdigest()[:16])
 if not stamp.exists():
     build = deps / 'SDL2-build'
     subprocess.run(['cmake', '-S', str(sdl_source), '-B', str(build),
@@ -123,5 +137,5 @@ if not stamp.exists():
     drivers = [runtime.SDL_GetVideoDriver(i).decode() for i in range(runtime.SDL_GetNumVideoDrivers())]
     if 'wayland' not in drivers:
         raise RuntimeError(f'SDL was built without native Wayland: {drivers}')
-    stamp.write_text('SDL 2.32.10; Wayland; PulseAudio; no sdl2-compat\n')
+    stamp.write_text('SDL 2.32.10 + Triton; Wayland; PulseAudio; no sdl2-compat\n')
 print(f'Prepared FFmpeg 9 / libplacebo 374 / native SDL2 2.32.10 in {sdk}')

@@ -533,6 +533,10 @@ public:
                     renderRect.x = 0;
                     renderRect.y = 0;
                 }
+                else if (i == Overlay::OverlayRadialKeyboard) {
+                    renderRect.x = MAX(0, (int)m_LastDrawableWidth - (int)overlayTexture.width);
+                    renderRect.y = 0;
+                }
                 else if (i == Overlay::OverlayDebug) {
                     // Top left
                     renderRect.x = 0;

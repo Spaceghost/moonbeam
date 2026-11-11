@@ -6,6 +6,7 @@ root=$PWD
 version=${MOONBEAM_BUILD_VERSION:-$(cat app/moonbeam-version.txt)}
 mkdir -p build/native-vulkan build/tools dist
 python3 scripts/prepare-moonbeam-sdk.py
+bash tests/run-triton-reports.sh
 export PKG_CONFIG_PATH="$root/build/deps/sdk/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 export LD_LIBRARY_PATH="$root/build/deps/sdk/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 cd build/native-vulkan

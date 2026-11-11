@@ -4,6 +4,7 @@
 #include "backend/computermanager.h"
 
 #include "SDL_compat.h"
+#include "radialkeyboard.h"
 
 struct GamepadState {
     SDL_GameController* controller;
@@ -21,6 +22,7 @@ struct GamepadState {
 
     bool clickpadButtonEmulationEnabled;
     bool emulatedClickpadButtonDown;
+    bool radialKeyboardEnabled;
 
 #if SDL_VERSION_ATLEAST(2, 0, 14)
     uint8_t gyroReportPeriodMs;
@@ -156,6 +158,11 @@ public:
     QString getUnmappedGamepads();
 
 private:
+    void sendRadialKey(int key);
+    void updateRadialOverlay(const RadialKeyboard& keyboard);
+    void cancelRadialKeyboards();
+    RadialKeyboard m_RadialKeyboards[MAX_GAMEPADS];
+    bool m_SteamPadKeyboard;
     enum KeyCombo {
         KeyComboQuit,
         KeyComboUngrabInput,

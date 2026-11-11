@@ -414,6 +414,7 @@ public:
                 [m_OverlayTextFields[type] setAlignment:NSTextAlignmentLeft];
                 break;
             case Overlay::OverlayStatusUpdate:
+            case Overlay::OverlayRadialKeyboard:
                 [m_OverlayTextFields[type] setAlignment:NSTextAlignmentRight];
                 break;
             default:
@@ -428,6 +429,12 @@ public:
         }
 
         // Update text contents
+        if (type == Overlay::OverlayRadialKeyboard) {
+            NSRect bounds = m_StreamView.bounds;
+            [m_OverlayTextFields[type] setFrame:NSMakeRect(MAX(0, bounds.size.width - 780), 0, MIN(780, bounds.size.width), 320)];
+            [m_OverlayTextFields[type] setAlignment:NSTextAlignmentLeft];
+            [m_OverlayTextFields[type] setFont:[NSFont monospacedSystemFontOfSize:18 weight:NSFontWeightRegular]];
+        }
         [m_OverlayTextFields[type] setStringValue: [NSString stringWithUTF8String:Session::get()->getOverlayManager().getOverlayText(type)]];
 
         // Unhide if it's enabled

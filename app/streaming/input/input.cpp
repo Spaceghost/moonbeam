@@ -10,7 +10,8 @@
 #include <QGuiApplication>
 
 SdlInputHandler::SdlInputHandler(StreamingPreferences& prefs, int streamWidth, int streamHeight)
-    : m_MultiController(prefs.multiController),
+    : m_SteamPadKeyboard(prefs.steamPadKeyboard),
+      m_MultiController(prefs.multiController),
       m_GamepadMouse(prefs.gamepadMouse),
       m_SwapMouseButtons(prefs.swapMouseButtons),
       m_ReverseScrollDirection(prefs.reverseScrollDirection),
@@ -272,6 +273,7 @@ void SdlInputHandler::setWindow(SDL_Window *window)
 
 void SdlInputHandler::notifyFocusLost()
 {
+    cancelRadialKeyboards();
     // Release mouse cursor when another window is activated (e.g. by using ALT+TAB).
     // This lets user to interact with our window's title bar and with the buttons in it.
     // Doing this while the window is full-screen breaks the transition out of FS

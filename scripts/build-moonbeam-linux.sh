@@ -18,6 +18,8 @@ fi
     libva-dev libvdpau-dev libx11-dev libegl1-mesa-dev libdrm-dev libwayland-dev wayland-protocols \
     libdecor-0-dev libxkbcommon-dev patchelf desktop-file-utils zsync squashfs-tools xvfb xauth
 bash scripts/package-moonbeam.sh
+c++ -std=c++11 -Wall -Wextra -Werror tests/radialkeyboard.cpp -o build/radialkeyboard-test
+build/radialkeyboard-test
 mkdir -p build/reconnect-tests
 cd build/reconnect-tests
 qmake6 ../../tests/reconnect/reconnect.pro

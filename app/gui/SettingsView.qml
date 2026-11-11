@@ -1532,6 +1532,20 @@ Flickable {
                 }
 
                 CheckBox {
+                    text: qsTr("Use Steam Controller trackpads as a radial keyboard")
+                    width: parent.width
+                    hoverEnabled: true
+                    font.pointSize: 12
+                    checked: StreamingPreferences.steamPadKeyboard
+                    onCheckedChanged: {
+                        StreamingPreferences.steamPadKeyboard = checked
+                    }
+                    ToolTip.visible: hovered
+                    ToolTip.delay: 1000
+                    ToolTip.text: qsTr("Left pad: letter group. Right pad: select a letter, then lift to type. Center right: space. Center left: editing controls. Sticks and buttons keep their normal gamepad controls. Applies on the next stream.")
+                }
+
+                CheckBox {
                     id: backgroundGamepadCheck
                     width: parent.width
                     text: qsTr("Process gamepad input when Moonlight is in the background")

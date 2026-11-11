@@ -159,6 +159,10 @@ mkdir %BUILD_FOLDER%
 mkdir %INSTALLER_FOLDER%
 mkdir %SYMBOLS_FOLDER%
 
+rem Keep native SDL2 audio/video and add the 2026 Steam Controller HID driver.
+python "%SOURCE_ROOT%\scripts\build-sdl2-triton.py" --arch %ARCH%
+if !ERRORLEVEL! NEQ 0 goto Error
+
 rem Enable LTCG for official builds
 set CFLAGS=/GL
 set CXXFLAGS=/GL

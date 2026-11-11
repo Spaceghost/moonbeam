@@ -288,6 +288,11 @@ void SdlInputHandler::handleControllerButtonEvent(SDL_ControllerButtonEvent* eve
         return;
     }
 
+#if SDL_VERSION_ATLEAST(2, 0, 14)
+    // Pressing a spelling pad must not also click the host's virtual touchpad.
+    if (state->radialKeyboardEnabled && event->button == SDL_CONTROLLER_BUTTON_TOUCHPAD) return;
+#endif
+
     if (m_SwapFaceButtons) {
         switch (event->button) {
         case SDL_CONTROLLER_BUTTON_A:
@@ -464,6 +469,29 @@ void SdlInputHandler::handleControllerTouchpadEvent(SDL_ControllerTouchpadEvent*
 {
     GamepadState* state = findStateForGamepad(event->which);
     if (state == NULL) {
+        return;
+    }
+
+    if (state->radialKeyboardEnabled) {
+        auto& radial = m_RadialKeyboards[state - m_GamepadState];
+        // Keyboard gestures never survive focus loss, even when background
+        // gamepad input is enabled. Fingers must land again after refocusing.
+        if (!m_Window || !(SDL_GetWindowFlags(m_Window) & SDL_WINDOW_INPUT_FOCUS)) {
+            radial.cancel();
+            updateRadialOverlay(radial);
+            return;
+        }
+        if (event->finger != 0 || event->touchpad > 1) return;
+        RadialKeyboard::Phase phase;
+        switch (event->type) {
+        case SDL_CONTROLLERTOUCHPADDOWN: phase = RadialKeyboard::Down; break;
+        case SDL_CONTROLLERTOUCHPADMOTION: phase = RadialKeyboard::Move; break;
+        case SDL_CONTROLLERTOUCHPADUP: phase = RadialKeyboard::Up; break;
+        default: return;
+        }
+        const int key = radial.touch(event->touchpad, phase, event->x, event->y);
+        if (key) sendRadialKey(key);
+        updateRadialOverlay(radial);
         return;
     }
 
@@ -752,9 +780,25 @@ void SdlInputHandler::handleControllerDeviceEvent(SDL_ControllerDeviceEvent* eve
             break;
         }
 
+        // Translate only the two independent Steam touchpads. The controller
+        // axes, face buttons, triggers, sensors and rumble use their usual path.
+        state->radialKeyboardEnabled = m_SteamPadKeyboard && type == LI_CTYPE_STEAM &&
+                                      SDL_GameControllerGetNumTouchpads(controller) == 2;
+        m_RadialKeyboards[state - m_GamepadState].cancel();
+        if (state->radialKeyboardEnabled) {
+            type = LI_CTYPE_PS;
+            capabilities &= ~(LI_CCAP_TOUCHPAD | LI_CCAP_DUAL_TOUCHPAD);
+            supportedButtonFlags &= ~TOUCHPAD_FLAG;
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Steam Controller: normal PlayStation controls + radial trackpad keyboard");
+        }
+        else if (m_SteamPadKeyboard && type == LI_CTYPE_STEAM) {
+            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Steam radial keyboard needs two native touchpads; check the bundled SDL driver and disable Steam Input for Moonbeam");
+        }
+
         // If this is a PlayStation controller that doesn't have a touchpad button mapped,
         // we'll allow the Select+PS button combo to act as the touchpad.
         state->clickpadButtonEmulationEnabled =
+            !state->radialKeyboardEnabled &&
 #if SDL_VERSION_ATLEAST(2, 0, 14)
             SDL_GameControllerGetBindForButton(state->controller, SDL_CONTROLLER_BUTTON_TOUCHPAD).bindType == SDL_CONTROLLER_BINDTYPE_NONE &&
 #endif
@@ -775,6 +819,8 @@ void SdlInputHandler::handleControllerDeviceEvent(SDL_ControllerDeviceEvent* eve
     else if (event->type == SDL_CONTROLLERDEVICEREMOVED) {
         state = findStateForGamepad(event->which);
         if (state != NULL) {
+            m_RadialKeyboards[state - m_GamepadState].cancel();
+            updateRadialOverlay(m_RadialKeyboards[state - m_GamepadState]);
             if (state->mouseEmulationTimer != 0) {
                 Session::get()->notifyMouseEmulationMode(false);
                 SDL_RemoveTimer(state->mouseEmulationTimer);

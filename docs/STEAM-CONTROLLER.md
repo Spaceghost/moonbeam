@@ -6,7 +6,10 @@ trackpads as a radial keyboard**, then start a new stream. It defaults on for
 Steam controllers with two native touchpads; other controllers are unaffected.
 
 Connect the 2026 Steam Controller to the client by USB cable or its wireless
-dongle. Launch Moonbeam directly, or disable Steam Input for its shortcut.
+dongle. For a direct launch, exit Steam on the streaming client first, or remove
+the controller's Steam Desktop Layout bindings. Launching Moonbeam outside Steam
+does not disable that desktop layout. If launching through Steam, disable Steam
+Input for the Moonbeam shortcut as well.
 Moonbeam needs the native controller, not a Steam virtual Xbox controller.
 Remove old trackpad-to-stick mappings. Linux also requires access to the
 controller's hidraw devices (current Steam device udev rules normally provide
@@ -36,6 +39,19 @@ In XivSpell 0.1.0.13+, type `i` to enter weaving, then rhythm-type `tank physick
 Typing `physick` afterward retains the tank target. R2+A repeats and R2+B
 continues the weave. Do not open XivSpell's old F8 modal stick wheel for this
 layout. Normal L3/R3 controls are preserved.
+
+## Left stick also tilts the camera
+
+Steam's desktop layout can send arrow keys while Moonbeam sends the native
+joystick axes. In FFXIV, this makes forward/backward movement also tilt the
+camera. The default `desktop_neptune.vdf` layout used by the 2026 Steam
+Controller binds its left stick to Up/Down/Left/Right arrow keys.
+
+Exit Steam on the **streaming client**, leaving Moonbeam and the game running,
+then try the left stick again. Alternatively, remove the controller's Steam
+Desktop Layout bindings before using Moonbeam. Reopening Steam with that layout
+still enabled can restore the duplicate input. Changing FFXIV's stick calibration
+or swapping camera axes does not remove those extra keyboard events.
 
 ## Platform and validation status
 
